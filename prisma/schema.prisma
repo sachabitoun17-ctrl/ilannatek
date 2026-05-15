@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  role            String         @default("USER") // USER | ADMIN | INSTRUCTOR
+  creditsBalance  Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  bookings        Booking[]
+  transactions    Transaction[]
+  subscriptions   Subscription[]
+  sessions        Session[]      @relation("InstructorSessions")
+  instructorBio   String?
+  instructorPhoto String?
+}
+
+model Location {
+  id        String    @id @default(cuid())
+  name      String
+  address   String?
+  sessions  Session[]
+  createdAt DateTime  @default(now())
+}
+
+model ClassType {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  durationMin Int       @default(60)
+  creditCost  Int       @default(1)
+  color       String    @default("#ec4899")
+  sessions    Session[]
+  createdAt   DateTime  @default(now())
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  classTypeId  String
+  classType    ClassType @relation(fields: [classTypeId], references: [id])
+  instructorId String
+  instructor   User     @relation("InstructorSessions", fields: [instructorId], references: [id])
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+  startTime    DateTime
+  endTime      DateTime
+  capacity     Int      @default(15)
+  status       String   @default("SCHEDULED") // SCHEDULED | CANCELLED | COMPLETED
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings     Booking[]
+
+  @@index([startTime])
+}
+
+model Booking {
+  id            String   @id @default(cuid())
+  sessionId     String
+  session       Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  status        String   @default("CONFIRMED") // CONFIRMED | WAITLIST | CANCELLED | ATTENDED | NO_SHOW
+  waitlistPos   Int?
+  creditsUsed   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Plan {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  type            String   // CREDIT_PACK | SUBSCRIPTION
+  priceCents      Int
+  creditsAmount   Int?     // for credit packs
+  intervalDays    Int?     // for subscriptions (30, 365, etc)
+  creditsPerCycle Int?     // credits granted per cycle for subscriptions
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  subscriptions Subscription[]
+  transactions  Transaction[]
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  planId       String
+  plan         Plan     @relation(fields: [planId], references: [id])
+  status       String   @default("ACTIVE") // ACTIVE | CANCELLED | EXPIRED
+  startDate    DateTime @default(now())
+  endDate      DateTime
+  autoRenew    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  planId       String?
+  plan         Plan?    @relation(fields: [planId], references: [id])
+  type         String   // PURCHASE_PACK | PURCHASE_SUBSCRIPTION | CREDIT_USE | CREDIT_REFUND | ADMIN_ADJUST
+  amountCents  Int      @default(0)
+  creditsDelta Int      @default(0)
+  description  String?
+  createdAt    DateTime @default(now())
+}
