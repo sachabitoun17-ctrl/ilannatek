@@ -75,6 +75,7 @@ export async function getCurrentUser() {
       email: true,
       firstName: true,
       lastName: true,
+      phone: true,
       role: true,
       creditsBalance: true,
       sessionVersion: true,

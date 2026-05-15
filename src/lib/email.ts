@@ -176,6 +176,36 @@ export const emailTemplates = {
        )} à ${args.location}.</p>`
     ),
   }),
+
+  passwordReset: (args: { firstName: string; resetUrl: string }) => ({
+    subject: "Réinitialisation de votre mot de passe",
+    html: wrap(
+      "Réinitialiser votre mot de passe",
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous — ce lien expire dans 1 heure.</p>
+       <p><a class="btn" href="${args.resetUrl}">Choisir un nouveau mot de passe</a></p>
+       <p class="muted">Si vous n'avez pas fait cette demande, ignorez cet email.</p>`
+    ),
+  }),
+
+  subscriptionFrozen: (args: { firstName: string; planName: string }) => ({
+    subject: `Abonnement mis en pause — ${args.planName}`,
+    html: wrap(
+      "Abonnement mis en pause",
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Votre abonnement <strong>${args.planName}</strong> est mis en pause. Il ne sera pas renouvellé tant qu'il est gelé.</p>
+       <p><a class="btn" href="${siteUrl()}/account">Reprendre mon abonnement</a></p>`
+    ),
+  }),
+
+  subscriptionResumed: (args: { firstName: string; planName: string; endDate: Date }) => ({
+    subject: `Abonnement repris — ${args.planName}`,
+    html: wrap(
+      "Abonnement repris",
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Votre abonnement <strong>${args.planName}</strong> est à nouveau actif jusqu'au ${args.endDate.toLocaleDateString("fr-FR")}.</p>`
+    ),
+  }),
 };
 
 function siteUrl() {

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { formatDateTime, formatPrice } from "@/lib/utils";
 import { cancelAction } from "../schedule/actions";
 import CancelButton from "./CancelButton";
+import { FreezeButton, UnfreezeButton } from "./SubscriptionActions";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -57,6 +58,9 @@ export default async function AccountPage() {
           </div>
           <Link href="/packs" className="btn-primary">
             + Acheter
+          </Link>
+          <Link href="/account/profile" className="btn-secondary text-sm">
+            Mon profil
           </Link>
         </div>
       </div>
@@ -116,7 +120,7 @@ export default async function AccountPage() {
             {subs.map((s) => (
               <div
                 key={s.id}
-                className="card flex items-center justify-between"
+                className="card flex flex-wrap items-center justify-between gap-3"
               >
                 <div>
                   <p className="font-medium">{s.plan.name}</p>
@@ -124,16 +128,27 @@ export default async function AccountPage() {
                     Du {s.startDate.toLocaleDateString("fr-FR")} au{" "}
                     {s.endDate.toLocaleDateString("fr-FR")}
                   </p>
+                  {s.frozenAt && (
+                    <p className="text-xs text-amber-600">
+                      En pause depuis le {s.frozenAt.toLocaleDateString("fr-FR")}
+                    </p>
+                  )}
                 </div>
-                <span
-                  className={`badge ${
-                    s.status === "ACTIVE"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {s.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`badge ${
+                      s.status === "ACTIVE"
+                        ? "bg-green-100 text-green-700"
+                        : s.status === "FROZEN"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {s.status === "ACTIVE" ? "Actif" : s.status === "FROZEN" ? "En pause" : s.status}
+                  </span>
+                  {s.status === "ACTIVE" && <FreezeButton subscriptionId={s.id} />}
+                  {s.status === "FROZEN" && <UnfreezeButton subscriptionId={s.id} />}
+                </div>
               </div>
             ))}
           </div>

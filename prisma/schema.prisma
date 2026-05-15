@@ -32,13 +32,14 @@ model User {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  bookings      Booking[]
-  transactions  Transaction[]
-  subscriptions Subscription[]
-  sessions      Session[]      @relation("InstructorSessions")
-  checkIns      CheckIn[]
-  auditLogs     AuditLog[]     @relation("AuditActor")
-  loginAttempts LoginAttempt[]
+  bookings           Booking[]
+  transactions       Transaction[]
+  subscriptions      Subscription[]
+  sessions           Session[]      @relation("InstructorSessions")
+  checkIns           CheckIn[]
+  auditLogs          AuditLog[]     @relation("AuditActor")
+  loginAttempts      LoginAttempt[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model LoginAttempt {
@@ -262,6 +263,18 @@ model AuditLog {
 
   @@index([actorId, createdAt])
   @@index([action, createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([token])
 }
 
 model Settings {

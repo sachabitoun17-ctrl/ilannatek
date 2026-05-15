@@ -25,6 +25,10 @@ export default async function UsersPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Membres</h1>
+        <div className="flex items-center gap-2">
+          <a href="/api/export/members" className="btn-secondary text-sm">
+            Export CSV
+          </a>
         <form className="flex items-center gap-2">
           <input
             name="q"
@@ -34,6 +38,7 @@ export default async function UsersPage({
           />
           <button className="btn-secondary">Rechercher</button>
         </form>
+        </div>
       </div>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">

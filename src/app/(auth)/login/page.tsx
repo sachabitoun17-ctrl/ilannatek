@@ -13,20 +13,34 @@ function SubmitButton() {
   );
 }
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { reset?: string };
+}) {
   const [state, action] = useFormState(loginAction, null);
   return (
     <div className="max-w-md mx-auto py-10">
       <div className="card">
         <h1 className="text-2xl font-bold mb-1">Connexion</h1>
         <p className="text-sm text-gray-500 mb-6">Heureux de vous revoir</p>
+        {searchParams?.reset && (
+          <p className="text-sm text-green-600 bg-green-50 rounded p-2 mb-4">
+            Mot de passe mis à jour. Connectez-vous.
+          </p>
+        )}
         <form action={action} className="space-y-4">
           <div>
             <label className="label">Email</label>
             <input type="email" name="email" required className="input" />
           </div>
           <div>
-            <label className="label">Mot de passe</label>
+            <div className="flex items-center justify-between">
+              <label className="label">Mot de passe</label>
+              <Link href="/forgot-password" className="text-xs text-brand-600">
+                Mot de passe oublié ?
+              </Link>
+            </div>
             <input type="password" name="password" required className="input" />
           </div>
           {state?.error && (

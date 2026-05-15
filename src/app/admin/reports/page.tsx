@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/utils";
+import { RevenueChart } from "./RevenueChart";
+import { BookingsChart } from "./BookingsChart";
 
 export default async function ReportsPage() {
   const now = new Date();
@@ -19,6 +21,8 @@ export default async function ReportsPage() {
     topClassTypes,
     activeSubs,
     newUsersLast30,
+    monthlyRevenue,
+    dailyBookings,
   ] = await Promise.all([
     db.transaction.aggregate({
       _sum: { amountCents: true },
@@ -77,15 +81,57 @@ export default async function ReportsPage() {
     db.user.count({
       where: { createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
     }),
+    db.$queryRawUnsafe<{ month: string; revenue: number }[]>(
+      `SELECT strftime('%Y-%m', createdAt) as month, SUM(amountCents) as revenue
+       FROM "Transaction"
+       WHERE paymentStatus = 'PAID'
+         AND createdAt >= date('now', '-12 months')
+       GROUP BY month
+       ORDER BY month ASC`
+    ),
+    db.$queryRawUnsafe<{ day: string; bookings: number; cancels: number }[]>(
+      `SELECT
+         date(b.createdAt) as day,
+         COUNT(CASE WHEN b.status IN ('CONFIRMED','ATTENDED','WAITLIST') THEN 1 END) as bookings,
+         COUNT(CASE WHEN b.status = 'CANCELLED' THEN 1 END) as cancels
+       FROM Booking b
+       WHERE b.createdAt >= date('now', '-14 day')
+       GROUP BY day
+       ORDER BY day ASC`
+    ),
   ]);
 
   const rev = revenueThisMonth._sum.amountCents ?? 0;
   const revPrev = revenueLastMonth._sum.amountCents ?? 0;
   const trend = revPrev > 0 ? Math.round(((rev - revPrev) / revPrev) * 100) : 0;
 
+  const revenueChartData = monthlyRevenue.map((r) => ({
+    month: r.month.slice(0, 7),
+    revenue: Number(r.revenue),
+  }));
+
+  const bookingsChartData = dailyBookings.map((r) => ({
+    day: r.day.slice(5),
+    bookings: Number(r.bookings),
+    cancels: Number(r.cancels),
+  }));
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Reporting</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Reporting</h1>
+        <div className="flex flex-wrap gap-2">
+          <a href="/api/export/transactions" className="btn-secondary text-sm">
+            ↓ Transactions CSV
+          </a>
+          <a href="/api/export/bookings" className="btn-secondary text-sm">
+            ↓ Réservations CSV
+          </a>
+          <a href="/api/export/members" className="btn-secondary text-sm">
+            ↓ Membres CSV
+          </a>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="CA mois en cours" value={formatPrice(rev)} hint={`${trend >= 0 ? "+" : ""}${trend}% vs mois -1`} />
@@ -96,6 +142,17 @@ export default async function ReportsPage() {
         <Stat label="Annulations 30j" value={cancelLast30.toString()} />
         <Stat label="No-shows 30j" value={noShowLast30.toString()} />
         <Stat label="Nouveaux membres 30j" value={newUsersLast30.toString()} />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="card">
+          <h3 className="font-semibold mb-4">Chiffre d'affaires — 12 derniers mois</h3>
+          <RevenueChart data={revenueChartData} />
+        </div>
+        <div className="card">
+          <h3 className="font-semibold mb-4">Réservations — 14 derniers jours</h3>
+          <BookingsChart data={bookingsChartData} />
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -128,7 +185,7 @@ export default async function ReportsPage() {
               <tr>
                 <th>Cours</th>
                 <th className="text-right">Inscrits</th>
-                <th className="text-right">Taux remplissage</th>
+                <th className="text-right">Remplissage</th>
               </tr>
             </thead>
             <tbody className="divide-y">
