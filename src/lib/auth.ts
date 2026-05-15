@@ -1,10 +1,14 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 
+if (!process.env.AUTH_SECRET && process.env.NODE_ENV === "production") {
+  throw new Error("AUTH_SECRET env var is required in production");
+}
 const SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "dev-secret-change-me"
+  process.env.AUTH_SECRET ?? "dev-secret-change-me-in-production"
 );
 const COOKIE_NAME = "ilannatek_session";
 const SESSION_DAYS = 30;
@@ -84,12 +88,13 @@ export async function getCurrentUser() {
 
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) throw new Error("UNAUTHORIZED");
+  if (!user) redirect("/login");
   return user;
 }
 
 export async function requireAdmin() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") throw new Error("FORBIDDEN");
+  if (!user) redirect("/login");
+  if (user.role !== "ADMIN") redirect("/");
   return user;
 }

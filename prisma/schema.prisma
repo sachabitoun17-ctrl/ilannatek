@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// SQLite does not support native enums.
+// Values: role USER|INSTRUCTOR|ADMIN, session SCHEDULED|CANCELLED|COMPLETED,
+// booking CONFIRMED|WAITLIST|CANCELLED|ATTENDED|NO_SHOW,
+// plan CREDIT_PACK|SUBSCRIPTION, sub ACTIVE|CANCELLED|EXPIRED,
+// tx PURCHASE_PACK|PURCHASE_SUBSCRIPTION|CREDIT_USE|CREDIT_REFUND|ADMIN_ADJUST
+
 model User {
   id              String         @id @default(cuid())
   email           String         @unique
@@ -14,36 +20,38 @@ model User {
   firstName       String
   lastName        String
   phone           String?
-  role            String         @default("USER") // USER | ADMIN | INSTRUCTOR
+  role            String         @default("USER")
   creditsBalance  Int            @default(0)
+  instructorBio   String?
+  instructorPhoto String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  bookings        Booking[]
-  transactions    Transaction[]
-  subscriptions   Subscription[]
-  sessions        Session[]      @relation("InstructorSessions")
-  instructorBio   String?
-  instructorPhoto String?
+  bookings      Booking[]
+  transactions  Transaction[]
+  subscriptions Subscription[]
+  sessions      Session[]      @relation("InstructorSessions")
 }
 
 model Location {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
   address   String?
+  createdAt DateTime @default(now())
+
   sessions  Session[]
-  createdAt DateTime  @default(now())
 }
 
 model ClassType {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
-  durationMin Int       @default(60)
-  creditCost  Int       @default(1)
-  color       String    @default("#ec4899")
+  durationMin Int      @default(60)
+  creditCost  Int      @default(1)
+  color       String   @default("#ec4899")
+  createdAt   DateTime @default(now())
+
   sessions    Session[]
-  createdAt   DateTime  @default(now())
 }
 
 model Session {
@@ -57,7 +65,7 @@ model Session {
   startTime    DateTime
   endTime      DateTime
   capacity     Int      @default(15)
-  status       String   @default("SCHEDULED") // SCHEDULED | CANCELLED | COMPLETED
+  status       String   @default("SCHEDULED")
   notes        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -65,34 +73,36 @@ model Session {
   bookings     Booking[]
 
   @@index([startTime])
+  @@index([instructorId])
 }
 
 model Booking {
-  id            String   @id @default(cuid())
-  sessionId     String
-  session       Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  status        String   @default("CONFIRMED") // CONFIRMED | WAITLIST | CANCELLED | ATTENDED | NO_SHOW
-  waitlistPos   Int?
-  creditsUsed   Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   @default("CONFIRMED")
+  waitlistPos Int?
+  creditsUsed Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([sessionId, userId])
   @@index([userId])
   @@index([status])
+  @@index([sessionId, status])
 }
 
 model Plan {
   id              String   @id @default(cuid())
   name            String
   description     String?
-  type            String   // CREDIT_PACK | SUBSCRIPTION
+  type            String
   priceCents      Int
-  creditsAmount   Int?     // for credit packs
-  intervalDays    Int?     // for subscriptions (30, 365, etc)
-  creditsPerCycle Int?     // credits granted per cycle for subscriptions
+  creditsAmount   Int?
+  intervalDays    Int?
+  creditsPerCycle Int?
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
 
@@ -101,17 +111,19 @@ model Plan {
 }
 
 model Subscription {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  planId       String
-  plan         Plan     @relation(fields: [planId], references: [id])
-  status       String   @default("ACTIVE") // ACTIVE | CANCELLED | EXPIRED
-  startDate    DateTime @default(now())
-  endDate      DateTime
-  autoRenew    Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  planId    String
+  plan      Plan     @relation(fields: [planId], references: [id])
+  status    String   @default("ACTIVE")
+  startDate DateTime @default(now())
+  endDate   DateTime
+  autoRenew Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
 }
 
 model Transaction {
@@ -120,9 +132,11 @@ model Transaction {
   user         User     @relation(fields: [userId], references: [id])
   planId       String?
   plan         Plan?    @relation(fields: [planId], references: [id])
-  type         String   // PURCHASE_PACK | PURCHASE_SUBSCRIPTION | CREDIT_USE | CREDIT_REFUND | ADMIN_ADJUST
+  type         String
   amountCents  Int      @default(0)
   creditsDelta Int      @default(0)
   description  String?
   createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

@@ -9,9 +9,10 @@ export async function bookSession(
   sessionId: string
 ): Promise<BookingResult> {
   return db.$transaction(async (tx) => {
+    // Lock the session row to prevent concurrent over-booking
     const session = await tx.session.findUnique({
       where: { id: sessionId },
-      include: { classType: true, bookings: true },
+      include: { classType: true },
     });
     if (!session) return { ok: false as const, error: "Cours introuvable" };
     if (session.status !== "SCHEDULED")
@@ -26,9 +27,13 @@ export async function bookSession(
       return { ok: false as const, error: "Vous êtes déjà inscrit à ce cours" };
     }
 
-    const confirmedCount = session.bookings.filter(
-      (b) => b.status === "CONFIRMED"
-    ).length;
+    // Count confirmed seats inside the transaction to avoid race conditions
+    const confirmedCount = await tx.booking.count({
+      where: { sessionId, status: "CONFIRMED" },
+    });
+    const waitlistCount = await tx.booking.count({
+      where: { sessionId, status: "WAITLIST" },
+    });
     const isWaitlist = confirmedCount >= session.capacity;
 
     const user = await tx.user.findUnique({ where: { id: userId } });
@@ -58,9 +63,6 @@ export async function bookSession(
         creditsUsed: isWaitlist ? 0 : cost,
       };
       if (isWaitlist) {
-        const waitlistCount = session.bookings.filter(
-          (b) => b.status === "WAITLIST"
-        ).length;
         waitlistPos = waitlistCount + 1;
         updateData.waitlistPos = waitlistPos;
       } else {
@@ -73,9 +75,6 @@ export async function bookSession(
       bookingId = updated.id;
     } else {
       if (isWaitlist) {
-        const waitlistCount = session.bookings.filter(
-          (b) => b.status === "WAITLIST"
-        ).length;
         waitlistPos = waitlistCount + 1;
       }
       const created = await tx.booking.create({
@@ -129,6 +128,15 @@ export async function cancelBooking(
       return { ok: false as const, error: "Non autorisé" };
     if (booking.status === "CANCELLED")
       return { ok: false as const, error: "Déjà annulée" };
+
+    // Cancellation cutoff: members cannot cancel within 2h of session start
+    const CANCEL_CUTOFF_MS = 2 * 60 * 60 * 1000;
+    if (!asAdmin && booking.session.startTime.getTime() - Date.now() < CANCEL_CUTOFF_MS) {
+      return {
+        ok: false as const,
+        error: "Annulation impossible moins de 2h avant le cours",
+      };
+    }
 
     const wasConfirmed = booking.status === "CONFIRMED";
 
