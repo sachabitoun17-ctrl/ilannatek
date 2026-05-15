@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { addDays, endOfDay, formatDate, formatTime, startOfDay } from "@/lib/utils";
+import { addDays, endOfDay, formatDate, startOfDay } from "@/lib/utils";
 import ScheduleClient from "./ScheduleClient";
 
 type SearchParams = { date?: string; location?: string; view?: string };
@@ -12,14 +12,34 @@ export default async function SchedulePage({
   searchParams: SearchParams;
 }) {
   const user = await getCurrentUser();
-  const view = searchParams.view === "week" ? "week" : "day";
+  const view: "day" | "week" | "grid" =
+    searchParams.view === "week"
+      ? "week"
+      : searchParams.view === "grid"
+      ? "grid"
+      : "day";
 
   const baseDate = searchParams.date ? new Date(searchParams.date) : new Date();
   if (Number.isNaN(baseDate.getTime())) baseDate.setTime(Date.now());
 
-  const numDays = view === "week" ? 7 : 1;
+  // For "grid" view, start at Monday of the week containing baseDate
+  let rangeStart: Date;
+  let numDays: number;
+  if (view === "grid") {
+    const dow = baseDate.getDay(); // 0=Sun..6=Sat
+    const diffToMonday = (dow + 6) % 7;
+    rangeStart = startOfDay(addDays(baseDate, -diffToMonday));
+    numDays = 7;
+  } else if (view === "week") {
+    rangeStart = startOfDay(baseDate);
+    numDays = 7;
+  } else {
+    rangeStart = startOfDay(baseDate);
+    numDays = 1;
+  }
+
   const days = Array.from({ length: numDays }).map((_, i) =>
-    startOfDay(addDays(baseDate, i))
+    startOfDay(addDays(rangeStart, i))
   );
 
   const locations = await db.location.findMany({ orderBy: { name: "asc" } });
@@ -42,7 +62,10 @@ export default async function SchedulePage({
     orderBy: { startTime: "asc" },
   });
 
-  const myBookingsMap = new Map<string, { id: string; status: string; waitlistPos: number | null }>();
+  const myBookingsMap = new Map<
+    string,
+    { id: string; status: string; waitlistPos: number | null }
+  >();
   if (user) {
     for (const s of sessions) {
       const mine = s.bookings.find(
@@ -60,7 +83,9 @@ export default async function SchedulePage({
 
   const grouped = days.map((d) => ({
     date: d,
-    sessions: sessions.filter((s) => s.startTime.toDateString() === d.toDateString()),
+    sessions: sessions.filter(
+      (s) => s.startTime.toDateString() === d.toDateString()
+    ),
   }));
 
   const enriched = grouped.map((g) => ({
@@ -89,12 +114,9 @@ export default async function SchedulePage({
     }),
   }));
 
-  const prevDate = addDays(baseDate, view === "week" ? -7 : -1)
-    .toISOString()
-    .slice(0, 10);
-  const nextDate = addDays(baseDate, view === "week" ? 7 : 1)
-    .toISOString()
-    .slice(0, 10);
+  const navDelta = view === "day" ? 1 : 7;
+  const prevDate = addDays(baseDate, -navDelta).toISOString().slice(0, 10);
+  const nextDate = addDays(baseDate, navDelta).toISOString().slice(0, 10);
 
   // Build the day strip for quick navigation (7 days centered on baseDate)
   const stripStart = startOfDay(addDays(baseDate, -3));
@@ -109,43 +131,51 @@ export default async function SchedulePage({
     };
   });
 
+  const headerLabel =
+    view === "grid"
+      ? `Semaine du ${formatDate(days[0])}`
+      : view === "week"
+      ? `Semaine du ${formatDate(days[0])}`
+      : formatDate(days[0]);
+
+  const buildHref = (v: "day" | "week" | "grid") => {
+    const dateParam = searchParams.date ? `&date=${searchParams.date}` : "";
+    const locParam = locationFilter ? `&location=${locationFilter}` : "";
+    return `/schedule?view=${v}${dateParam}${locParam}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="section-title">Studio Boutique</p>
-          <h1 className="text-3xl font-bold text-gray-900 mt-1">Planning</h1>
-          <p className="text-sm text-gray-500 capitalize mt-0.5">
-            {view === "week"
-              ? `Semaine du ${formatDate(days[0])}`
-              : formatDate(days[0])}
-          </p>
+          <h1 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 mt-1">
+            Planning
+          </h1>
+          <p className="text-sm text-stone2-500 capitalize mt-1">{headerLabel}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-md border border-gray-300 p-0.5 bg-white">
-            <Link
-              href={`/schedule?view=day${
-                searchParams.date ? `&date=${searchParams.date}` : ""
-              }${locationFilter ? `&location=${locationFilter}` : ""}`}
-              className={`px-3 py-1 rounded text-xs ${
-                view === "day" ? "bg-brand-600 text-white" : "text-gray-600"
-              }`}
-            >
-              Jour
-            </Link>
-            <Link
-              href={`/schedule?view=week${
-                searchParams.date ? `&date=${searchParams.date}` : ""
-              }${locationFilter ? `&location=${locationFilter}` : ""}`}
-              className={`px-3 py-1 rounded text-xs ${
-                view === "week" ? "bg-brand-600 text-white" : "text-gray-600"
-              }`}
-            >
-              Semaine
-            </Link>
+          <div className="inline-flex border border-brand-600 bg-cream-50">
+            {(["day", "week", "grid"] as const).map((v) => (
+              <Link
+                key={v}
+                href={buildHref(v)}
+                className={`px-4 py-2 text-[10px] uppercase tracking-[0.18em] ${
+                  view === v
+                    ? "bg-brand-600 text-cream-50"
+                    : "text-brand-600 hover:bg-cream-100"
+                }`}
+              >
+                {v === "day" ? "Jour" : v === "week" ? "Semaine" : "Grille"}
+              </Link>
+            ))}
           </div>
           <form className="flex items-center gap-2">
-            <select name="location" defaultValue={locationFilter ?? ""} className="input">
+            <select
+              name="location"
+              defaultValue={locationFilter ?? ""}
+              className="input"
+            >
               <option value="">Tous les studios</option>
               {locations.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -160,7 +190,7 @@ export default async function SchedulePage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 bg-white rounded-xl border border-gray-100 p-2">
+      <div className="flex items-center justify-between gap-2 bg-white border border-stone2-200 p-2">
         <Link
           href={`/schedule?view=${view}&date=${prevDate}${
             locationFilter ? `&location=${locationFilter}` : ""
@@ -176,16 +206,18 @@ export default async function SchedulePage({
               href={`/schedule?view=${view}&date=${d.iso}${
                 locationFilter ? `&location=${locationFilter}` : ""
               }`}
-              className={`flex flex-col items-center px-3 py-2 rounded-md min-w-[64px] ${
+              className={`flex flex-col items-center px-3 py-2 min-w-[64px] transition-colors ${
                 d.isActive
-                  ? "bg-brand-600 text-white"
+                  ? "bg-brand-600 text-cream-50"
                   : d.isToday
-                  ? "bg-brand-50 text-brand-700"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-accent-100 text-brand-600"
+                  : "text-stone2-600 hover:bg-cream-100"
               }`}
             >
-              <span className="text-xs uppercase">{d.label}</span>
-              <span className="text-lg font-semibold">{d.day}</span>
+              <span className="text-[10px] uppercase tracking-widest">
+                {d.label}
+              </span>
+              <span className="font-serif text-xl">{d.day}</span>
             </Link>
           ))}
         </div>
@@ -200,8 +232,8 @@ export default async function SchedulePage({
       </div>
 
       {!user && (
-        <div className="card bg-brand-50 border-brand-200">
-          <p className="text-sm text-brand-800">
+        <div className="bg-accent-50 border border-accent-200 px-5 py-4">
+          <p className="text-sm text-brand-600">
             <Link href="/login" className="font-semibold underline">
               Connectez-vous
             </Link>{" "}

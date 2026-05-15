@@ -4,7 +4,11 @@ import { getCurrentUser } from "@/lib/auth";
 import { formatPrice } from "@/lib/utils";
 import PurchaseButton from "./PurchaseButton";
 
-export default async function PacksPage() {
+export default async function PacksPage({
+  searchParams,
+}: {
+  searchParams?: { from?: string };
+}) {
   const user = await getCurrentUser();
   const packs = await db.plan.findMany({
     where: { type: "CREDIT_PACK", active: true },
@@ -13,20 +17,35 @@ export default async function PacksPage() {
 
   // Mark the most expensive pack as featured
   const maxPrice = packs.length > 0 ? Math.max(...packs.map((p) => p.priceCents)) : 0;
+  const fromSchedule = searchParams?.from === "schedule";
 
   return (
     <div className="space-y-10">
       <div>
         <p className="section-title">Studio Boutique</p>
-        <h1 className="text-3xl font-bold text-gray-900">Packs de crédits</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="font-serif text-4xl md:text-5xl font-medium text-brand-600">
+          Packs de crédits
+        </h1>
+        <p className="text-sm text-stone2-500 mt-2">
           Achetez des crédits utilisables pour toutes les réservations
         </p>
       </div>
 
+      {fromSchedule && (
+        <div className="border-l-4 border-accent-500 bg-accent-50 px-5 py-4">
+          <p className="text-sm text-brand-600 font-medium">
+            Solde insuffisant pour réserver
+          </p>
+          <p className="text-xs text-stone2-600 mt-1">
+            Choisissez un pack ci-dessous, puis retournez au planning pour
+            valider votre réservation.
+          </p>
+        </div>
+      )}
+
       {!user && (
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
-          <p className="text-sm text-gray-700">
+        <div className="border border-stone2-200 bg-cream-100 px-5 py-4">
+          <p className="text-sm text-brand-600">
             <Link href="/login" className="font-semibold underline">
               Connectez-vous
             </Link>{" "}

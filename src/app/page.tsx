@@ -22,44 +22,46 @@ export default async function Home() {
   ]);
 
   return (
-    <div>
+    <div className="-mx-4 md:-mx-8 -my-10">
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-brand-600 to-pink-800 text-white py-24 px-6 -mx-4 md:-mx-8 overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-10"
+      <section className="bg-brand-600 text-cream-50 px-6 pt-32 pb-28 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{
             backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+              "radial-gradient(circle at 20% 30%, #A07B3A 0%, transparent 40%), radial-gradient(circle at 80% 70%, #BC944A 0%, transparent 40%)",
           }}
         />
-        <div className="max-w-3xl mx-auto text-center relative z-10">
-          <p className="text-pink-200 text-sm font-medium uppercase tracking-widest mb-3">
-            Studio boutique
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <p className="text-accent-300 text-[10px] font-semibold uppercase tracking-[0.35em] mb-6">
+            Studio Boutique · Paris
           </p>
-          <h1 className="text-5xl md:text-6xl font-bold mb-5 leading-tight">
+          <h1 className="font-serif text-6xl md:text-7xl font-medium mb-8 leading-[0.95] text-cream-50">
             {settings.studioName}
+            <br />
+            <span className="text-accent-300 italic font-normal">le sanctuaire</span>
           </h1>
-          <p className="text-xl text-pink-100 mb-10 max-w-xl mx-auto">
-            Des cours qui vous ressemblent. Réservez en quelques secondes, annulez librement, progressez à votre rythme.
+          <p className="text-base md:text-lg text-stone2-300 mb-12 max-w-xl mx-auto font-light leading-relaxed">
+            Un lieu, une pratique, un rythme.<br />
+            Réservez votre cours en quelques secondes.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/schedule"
-              className="bg-white text-brand-600 font-semibold px-8 py-3 rounded-lg hover:bg-pink-50 transition"
+              className="inline-flex items-center px-8 py-4 bg-cream-50 text-brand-600 text-[11px] uppercase tracking-[0.22em] font-medium hover:bg-accent-300 transition-colors"
             >
               Voir le planning
             </Link>
             {!user ? (
               <Link
                 href="/register"
-                className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition"
+                className="inline-flex items-center px-8 py-4 border border-cream-50 text-cream-50 text-[11px] uppercase tracking-[0.22em] font-medium hover:bg-cream-50 hover:text-brand-600 transition-colors"
               >
                 Créer mon compte
               </Link>
             ) : (
               <Link
                 href="/account"
-                className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition"
+                className="inline-flex items-center px-8 py-4 border border-cream-50 text-cream-50 text-[11px] uppercase tracking-[0.22em] font-medium hover:bg-cream-50 hover:text-brand-600 transition-colors"
               >
                 Mon espace
               </Link>
@@ -69,33 +71,40 @@ export default async function Home() {
       </section>
 
       {/* How it works */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Comment ça marche ?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+      <section className="bg-cream-50 py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <p className="section-title text-center mb-2">Le parcours</p>
+          <h2 className="font-serif text-4xl md:text-5xl text-center font-medium mb-16 text-brand-600">
+            Comment ça marche
+          </h2>
+          <div className="grid md:grid-cols-3 gap-10">
             {[
               {
                 step: "01",
-                title: "Choisissez votre cours",
-                desc: "Consultez le planning en temps réel — par jour ou par semaine, filtrez par studio.",
+                title: "Choisir",
+                desc: "Consultez le planning, filtrez par studio, par horaire, par instructeur.",
               },
               {
                 step: "02",
-                title: "Réservez en un clic",
-                desc: "Utilisez vos crédits ou votre abonnement. Confirmation instantanée par email.",
+                title: "Réserver",
+                desc: "Confirmation instantanée par email. Un crédit, et c'est validé.",
               },
               {
                 step: "03",
-                title: "Venez & profitez",
-                desc: "Check-in QR à l'entrée ou via votre téléphone. Votre instructeur vous attend.",
+                title: "Venir",
+                desc: "Check-in à l'entrée du studio. Profitez. Recommencez.",
               },
             ].map((item) => (
               <div key={item.step} className="text-center">
-                <div className="w-12 h-12 rounded-full bg-brand-100 text-brand-600 font-bold text-lg flex items-center justify-center mx-auto mb-4">
+                <p className="font-serif text-5xl text-accent-500 mb-4">
                   {item.step}
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm">{item.desc}</p>
+                </p>
+                <h3 className="font-serif text-2xl text-brand-600 mb-3">
+                  {item.title}
+                </h3>
+                <p className="text-stone2-500 text-sm leading-relaxed max-w-[260px] mx-auto">
+                  {item.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -104,38 +113,40 @@ export default async function Home() {
 
       {/* Class types */}
       {classTypes.length > 0 && (
-        <section className="py-16 px-4 bg-gray-50 -mx-4 md:-mx-8">
-          <div className="max-w-4xl mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-3">Nos cours</h2>
-            <p className="text-center text-gray-500 mb-10">
-              Une offre pensée pour tous les niveaux
-            </p>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <section className="py-24 px-6 bg-cream-100">
+          <div className="max-w-6xl mx-auto">
+            <p className="section-title text-center mb-2">Nos pratiques</p>
+            <h2 className="font-serif text-4xl md:text-5xl text-center font-medium mb-16 text-brand-600">
+              Une offre boutique
+            </h2>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-px bg-stone2-200 border border-stone2-200">
               {classTypes.map((ct) => (
                 <div
                   key={ct.id}
-                  className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition"
+                  className="bg-cream-50 p-8 hover:bg-white transition-colors"
                 >
                   <div
-                    className="w-10 h-10 rounded-lg mb-3 flex items-center justify-center text-white font-bold text-sm"
+                    className="h-1 w-12 mb-5"
                     style={{ backgroundColor: ct.color }}
-                  >
-                    {ct.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <h3 className="font-semibold mb-1">{ct.name}</h3>
+                  />
+                  <h3 className="font-serif text-2xl text-brand-600 mb-2">
+                    {ct.name}
+                  </h3>
                   {ct.description && (
-                    <p className="text-sm text-gray-500 mb-2">{ct.description}</p>
+                    <p className="text-stone2-500 text-sm mb-4 leading-relaxed">
+                      {ct.description}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-400">
+                  <p className="text-[10px] uppercase tracking-widest text-stone2-400">
                     {ct.durationMin} min · {ct.creditCost} crédit
                     {ct.creditCost > 1 ? "s" : ""}
                   </p>
                 </div>
               ))}
             </div>
-            <div className="text-center mt-8">
-              <Link href="/schedule" className="btn-primary px-8 py-3">
-                Voir toutes les séances
+            <div className="text-center mt-12">
+              <Link href="/schedule" className="btn-primary">
+                Toutes les séances
               </Link>
             </div>
           </div>
@@ -144,24 +155,26 @@ export default async function Home() {
 
       {/* Instructors */}
       {instructors.length > 0 && (
-        <section className="py-16 px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-3">Nos instructeurs</h2>
-            <p className="text-center text-gray-500 mb-10">
-              Des experts passionnés à votre écoute
-            </p>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <section className="py-24 px-6 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <p className="section-title text-center mb-2">L'équipe</p>
+            <h2 className="font-serif text-4xl md:text-5xl text-center font-medium mb-16 text-brand-600">
+              Nos instructeurs
+            </h2>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
               {instructors.map((inst) => (
-                <div key={inst.id} className="card text-center">
-                  <div className="w-16 h-16 rounded-full bg-brand-100 text-brand-600 font-bold text-xl flex items-center justify-center mx-auto mb-3">
+                <div key={inst.id} className="text-center">
+                  <div className="w-20 h-20 rounded-full bg-stone2-200 text-brand-600 font-serif text-2xl flex items-center justify-center mx-auto mb-4">
                     {inst.firstName[0]}
                     {inst.lastName[0]}
                   </div>
-                  <h3 className="font-semibold">
+                  <h3 className="font-serif text-xl text-brand-600">
                     {inst.firstName} {inst.lastName}
                   </h3>
                   {inst.instructorBio && (
-                    <p className="text-sm text-gray-500 mt-1">{inst.instructorBio}</p>
+                    <p className="text-sm text-stone2-500 mt-2 leading-relaxed">
+                      {inst.instructorBio}
+                    </p>
                   )}
                 </div>
               ))}
@@ -171,43 +184,51 @@ export default async function Home() {
       )}
 
       {/* Pricing teaser */}
-      <section className="py-16 px-4 bg-gray-50 -mx-4 md:-mx-8">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-3">Packs & Abonnements</h2>
-          <p className="text-gray-500 mb-8">
-            Flexible ou illimité — choisissez ce qui vous convient.
+      <section className="py-24 px-6 bg-brand-600 text-cream-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-accent-300 mb-2">
+            Tarifs
           </p>
-          <div className="grid sm:grid-cols-2 gap-6 text-left">
-            <div className="bg-white rounded-xl p-6 border-2 border-gray-200">
-              <p className="text-xs text-gray-500 uppercase font-medium mb-2">
-                Crédits à la carte
+          <h2 className="font-serif text-4xl md:text-5xl font-medium mb-4">
+            Packs &amp; Abonnements
+          </h2>
+          <p className="text-stone2-300 mb-12 max-w-xl mx-auto">
+            Flexible ou illimité. Choisissez ce qui correspond à votre rythme.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-px bg-brand-700">
+            <div className="bg-brand-600 p-10 text-left">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-accent-300 mb-3">
+                À la carte
               </p>
-              <p className="text-2xl font-bold mb-2">Packs</p>
-              <p className="text-sm text-gray-600 mb-4">
-                Achetez un pack de crédits, utilisez-les quand vous voulez. Parfait si vous
-                venez de temps en temps.
+              <p className="font-serif text-3xl mb-3">Crédits</p>
+              <p className="text-sm text-stone2-300 mb-6 leading-relaxed">
+                Achetez des crédits, utilisez-les quand vous voulez. Parfait pour
+                une pratique occasionnelle.
               </p>
-              <Link href="/packs" className="btn-secondary w-full text-center block">
-                Voir les packs
+              <Link
+                href="/packs"
+                className="inline-flex items-center text-[11px] uppercase tracking-[0.22em] text-cream-50 border-b border-cream-50 pb-1 hover:text-accent-300 hover:border-accent-300"
+              >
+                Voir les packs →
               </Link>
             </div>
-            <div className="bg-brand-600 text-white rounded-xl p-6 relative overflow-hidden">
-              <div className="absolute top-3 right-3 bg-white text-brand-600 text-xs font-bold px-2 py-0.5 rounded-full">
+            <div className="bg-brand-600 p-10 text-left relative">
+              <span className="absolute top-4 right-4 text-[9px] uppercase tracking-widest px-2 py-1 bg-accent-500 text-brand-600 font-semibold">
                 Populaire
-              </div>
-              <p className="text-xs text-pink-200 uppercase font-medium mb-2">
-                Accès illimité
+              </span>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-accent-300 mb-3">
+                Illimité
               </p>
-              <p className="text-2xl font-bold mb-2">Abonnements</p>
-              <p className="text-sm text-pink-100 mb-4">
-                Mensuel ou annuel, venez autant que vous voulez. La meilleure option si vous
-                venez régulièrement.
+              <p className="font-serif text-3xl mb-3">Abonnements</p>
+              <p className="text-sm text-stone2-300 mb-6 leading-relaxed">
+                Mensuel ou annuel. Venez autant que vous voulez. La meilleure
+                option pour les habitué·e·s.
               </p>
               <Link
                 href="/subscriptions"
-                className="bg-white text-brand-600 font-semibold w-full text-center block py-2 rounded-lg hover:bg-pink-50 transition"
+                className="inline-flex items-center text-[11px] uppercase tracking-[0.22em] text-cream-50 border-b border-cream-50 pb-1 hover:text-accent-300 hover:border-accent-300"
               >
-                Voir les abonnements
+                Voir les abonnements →
               </Link>
             </div>
           </div>
@@ -216,17 +237,18 @@ export default async function Home() {
 
       {/* Bottom CTA */}
       {!user && (
-        <section className="py-20 px-4 text-center">
-          <h2 className="text-3xl font-bold mb-3">Prêt à commencer ?</h2>
-          <p className="text-gray-500 mb-8 max-w-md mx-auto">
-            Créez votre compte en 30 secondes et réservez votre premier cours dès
-            aujourd'hui.
+        <section className="py-24 px-6 bg-cream-50 text-center">
+          <h2 className="font-serif text-4xl md:text-5xl font-medium mb-4 text-brand-600">
+            Prêt·e à commencer ?
+          </h2>
+          <p className="text-stone2-500 mb-10 max-w-md mx-auto">
+            Créez votre compte en 30 secondes. Réservez votre premier cours aujourd'hui.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/register" className="btn-primary px-8 py-3 text-base">
-              Créer mon compte gratuitement
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/register" className="btn-primary">
+              Créer mon compte
             </Link>
-            <Link href="/schedule" className="btn-secondary px-8 py-3 text-base">
+            <Link href="/schedule" className="btn-secondary">
               Voir le planning
             </Link>
           </div>
