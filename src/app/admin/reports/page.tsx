@@ -55,24 +55,24 @@ export default async function ReportsPage() {
         updatedAt: { gte: new Date(Date.now() - 30 * 86400000) },
       },
     }),
-    db.$queryRawUnsafe<{ instructorId: string; firstName: string; lastName: string; n: number }[]>(
-      `SELECT s.instructorId, u.firstName, u.lastName, COUNT(b.id) as n
-       FROM Booking b
-       JOIN Session s ON s.id = b.sessionId
-       JOIN User u ON u.id = s.instructorId
+    db.$queryRawUnsafe<{ instructorId: string; firstName: string; lastName: string; n: bigint }[]>(
+      `SELECT s."instructorId", u."firstName", u."lastName", COUNT(b.id)::int as n
+       FROM "Booking" b
+       JOIN "Session" s ON s.id = b."sessionId"
+       JOIN "User" u ON u.id = s."instructorId"
        WHERE b.status IN ('CONFIRMED', 'ATTENDED')
-         AND b.createdAt >= date('now', '-30 day')
-       GROUP BY s.instructorId
+         AND b."createdAt" >= NOW() - INTERVAL '30 days'
+       GROUP BY s."instructorId", u."firstName", u."lastName"
        ORDER BY n DESC LIMIT 5`
     ),
-    db.$queryRawUnsafe<{ classTypeId: string; name: string; n: number; cap: number }[]>(
-      `SELECT s.classTypeId, ct.name, COUNT(b.id) as n, SUM(s.capacity) as cap
-       FROM Booking b
-       JOIN Session s ON s.id = b.sessionId
-       JOIN ClassType ct ON ct.id = s.classTypeId
+    db.$queryRawUnsafe<{ classTypeId: string; name: string; n: bigint; cap: bigint }[]>(
+      `SELECT s."classTypeId", ct.name, COUNT(b.id)::int as n, SUM(s.capacity)::int as cap
+       FROM "Booking" b
+       JOIN "Session" s ON s.id = b."sessionId"
+       JOIN "ClassType" ct ON ct.id = s."classTypeId"
        WHERE b.status IN ('CONFIRMED', 'ATTENDED')
-         AND s.startTime >= date('now', '-30 day')
-       GROUP BY s.classTypeId
+         AND s."startTime" >= NOW() - INTERVAL '30 days'
+       GROUP BY s."classTypeId", ct.name
        ORDER BY n DESC LIMIT 5`
     ),
     db.subscription.count({
@@ -81,21 +81,21 @@ export default async function ReportsPage() {
     db.user.count({
       where: { createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
     }),
-    db.$queryRawUnsafe<{ month: string; revenue: number }[]>(
-      `SELECT strftime('%Y-%m', createdAt) as month, SUM(amountCents) as revenue
+    db.$queryRawUnsafe<{ month: string; revenue: bigint }[]>(
+      `SELECT TO_CHAR("createdAt", 'YYYY-MM') as month, SUM("amountCents")::bigint as revenue
        FROM "Transaction"
-       WHERE paymentStatus = 'PAID'
-         AND createdAt >= date('now', '-12 months')
+       WHERE "paymentStatus" = 'PAID'
+         AND "createdAt" >= NOW() - INTERVAL '12 months'
        GROUP BY month
        ORDER BY month ASC`
     ),
-    db.$queryRawUnsafe<{ day: string; bookings: number; cancels: number }[]>(
+    db.$queryRawUnsafe<{ day: string; bookings: bigint; cancels: bigint }[]>(
       `SELECT
-         date(b.createdAt) as day,
-         COUNT(CASE WHEN b.status IN ('CONFIRMED','ATTENDED','WAITLIST') THEN 1 END) as bookings,
-         COUNT(CASE WHEN b.status = 'CANCELLED' THEN 1 END) as cancels
-       FROM Booking b
-       WHERE b.createdAt >= date('now', '-14 day')
+         TO_CHAR(DATE("createdAt"), 'YYYY-MM-DD') as day,
+         COUNT(CASE WHEN status IN ('CONFIRMED','ATTENDED','WAITLIST') THEN 1 END)::int as bookings,
+         COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END)::int as cancels
+       FROM "Booking"
+       WHERE "createdAt" >= NOW() - INTERVAL '14 days'
        GROUP BY day
        ORDER BY day ASC`
     ),

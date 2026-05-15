@@ -185,7 +185,19 @@ async function main() {
     });
   }
 
-  await db.session.deleteMany({});
+  // Only regenerate sessions if none exist (idempotent for prod).
+  // To force a regen, set SEED_RESET_SESSIONS=1 in env.
+  const existingSessions = await db.session.count();
+  if (existingSessions > 0 && process.env.SEED_RESET_SESSIONS !== "1") {
+    console.log(`✓ ${existingSessions} sessions already exist — skipping regeneration`);
+    console.log(`✓ Admin: admin@ilannatek.fr / admin1234`);
+    console.log(`✓ Member: membre@ilannatek.fr / member1234`);
+    return;
+  }
+
+  if (existingSessions > 0) {
+    await db.session.deleteMany({});
+  }
 
   const now = new Date();
   const today = new Date(now);
