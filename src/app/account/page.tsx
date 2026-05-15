@@ -2,18 +2,64 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDateTime, formatPrice } from "@/lib/utils";
-import { cancelAction } from "../schedule/actions";
-import CancelButton from "./CancelButton";
+import { formatPrice } from "@/lib/utils";
 import { FreezeButton, UnfreezeButton } from "./SubscriptionActions";
+import AccountTabs from "./AccountTabs";
+
+function googleCalLink(booking: {
+  classTypeName: string;
+  startTime: Date;
+  endTime: Date;
+  instructorName: string;
+  locationName: string;
+  locationAddress: string | null;
+}) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${booking.classTypeName} — Ilannatek`,
+    dates: `${fmt(booking.startTime)}/${fmt(booking.endTime)}`,
+    details: `Avec ${booking.instructorName}`,
+    location: [booking.locationName, booking.locationAddress].filter(Boolean).join(", "),
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [bookings, subs, transactions] = await Promise.all([
+  const now = new Date();
+  const checkInWindowOpen = new Date(now.getTime() - 90 * 60000); // -90min
+  const checkInWindowClose = new Date(now.getTime() + 30 * 60000); // +30min
+
+  const [upcomingBookings, pastBookings, subs, transactions] = await Promise.all([
     db.booking.findMany({
-      where: { userId: user.id, status: { in: ["CONFIRMED", "WAITLIST"] } },
+      where: {
+        userId: user.id,
+        status: { in: ["CONFIRMED", "WAITLIST"] },
+        session: { startTime: { gte: now } },
+      },
+      include: {
+        session: {
+          include: {
+            classType: true,
+            instructor: { select: { firstName: true, lastName: true } },
+            location: true,
+            checkIns: { where: { userId: user.id }, select: { id: true } },
+          },
+        },
+      },
+      orderBy: { session: { startTime: "asc" } },
+    }),
+    db.booking.findMany({
+      where: {
+        userId: user.id,
+        status: { in: ["ATTENDED", "NO_SHOW", "CANCELLED", "CONFIRMED"] },
+        session: { startTime: { lt: now } },
+      },
       include: {
         session: {
           include: {
@@ -23,45 +69,60 @@ export default async function AccountPage() {
           },
         },
       },
-      orderBy: { session: { startTime: "asc" } },
+      orderBy: { session: { startTime: "desc" } },
+      take: 30,
     }),
     db.subscription.findMany({
       where: { userId: user.id },
       include: { plan: true },
       orderBy: { startDate: "desc" },
-      take: 10,
+      take: 5,
     }),
     db.transaction.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 25,
     }),
   ]);
 
-  const upcoming = bookings.filter((b) => b.session.startTime >= new Date());
+  const nextBooking = upcomingBookings[0] ?? null;
+  const activeSub = subs.find((s) => s.status === "ACTIVE");
+
+  // Check-in window open for a booking?
+  const checkInNow = upcomingBookings.find((b) => {
+    const st = b.session.startTime;
+    return st >= checkInWindowOpen && st <= checkInWindowClose;
+  });
 
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-gray-100">
+      <div className="flex flex-wrap items-start justify-between gap-6 pb-8 border-b border-stone2-200">
         <div>
           <p className="section-title">Mon espace</p>
-          <h1 className="text-3xl font-bold text-gray-900 mt-1">
-            Bonjour, {user.firstName}
+          <h1 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 mt-1">
+            {user.firstName} {user.lastName}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">{user.email}</p>
+          <p className="text-sm text-stone2-500 mt-1">{user.email}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl border border-gray-100 bg-white p-5 text-center min-w-[140px]">
-            <p className="section-title mb-0">Crédits</p>
-            <p className="text-4xl font-bold text-brand-600 mt-1">
-              {user.creditsBalance}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Link href="/packs" className="btn-primary text-sm">
-              + Acheter
+        <div className="flex items-start gap-4 flex-wrap">
+          {/* Credits block */}
+          <div className="bg-brand-600 text-cream-50 px-7 py-5 text-center min-w-[140px]">
+            <p className="section-title text-stone2-400 mb-1">Crédits</p>
+            <p className="font-serif text-5xl font-medium">{user.creditsBalance}</p>
+            <Link
+              href="/packs"
+              className="block mt-3 text-[10px] uppercase tracking-widest text-stone2-300 hover:text-cream-50 border-t border-brand-700 pt-2"
+            >
+              + Recharger
             </Link>
+          </div>
+          <div className="flex flex-col gap-2 pt-1">
+            {activeSub && (
+              <span className="badge bg-accent-100 text-accent-600 border border-accent-200">
+                {activeSub.plan.name} actif
+              </span>
+            )}
             <Link href="/account/profile" className="btn-secondary text-sm">
               Mon profil
             </Link>
@@ -69,145 +130,161 @@ export default async function AccountPage() {
         </div>
       </div>
 
-      <section>
-        <p className="section-title">Prochaines réservations</p>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-gray-500 mt-3">
-            Aucune réservation à venir.{" "}
-            <Link href="/schedule" className="text-brand-600 underline hover:text-brand-700">
-              Voir le planning
-            </Link>
-          </p>
-        ) : (
-          <div className="space-y-2 mt-3">
-            {upcoming.map((b) => (
-              <div
-                key={b.id}
-                className="card flex flex-wrap items-center justify-between gap-3"
-              >
-                <div>
-                  <p className="font-semibold text-gray-900">{b.session.classType.name}</p>
-                  <p className="text-sm text-gray-600 mt-0.5">
-                    {formatDateTime(b.session.startTime)} · {b.session.location.name}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Avec {b.session.instructor.firstName}{" "}
-                    {b.session.instructor.lastName}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`badge ${
-                      b.status === "CONFIRMED"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {b.status === "CONFIRMED"
-                      ? "Confirmée"
-                      : `Liste d'attente · #${b.waitlistPos}`}
-                  </span>
-                  <CancelButton bookingId={b.id} />
-                </div>
-              </div>
-            ))}
+      {/* Check-in alert (Mariana Tek style) */}
+      {checkInNow && (
+        <div className="bg-brand-600 text-cream-50 px-6 py-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-accent-300 mb-1">
+              Enregistrement ouvert
+            </p>
+            <p className="font-serif text-2xl">
+              {checkInNow.session.classType.name}
+            </p>
+            <p className="text-sm text-stone2-300 mt-0.5">
+              {checkInNow.session.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              {" "}&mdash;{" "}
+              {checkInNow.session.location.name}
+            </p>
           </div>
-        )}
-      </section>
-
-      <section>
-        <p className="section-title">Mes abonnements</p>
-        {subs.length === 0 ? (
-          <p className="text-sm text-gray-500 mt-3">
-            Aucun abonnement.{" "}
-            <Link href="/subscriptions" className="text-brand-600 underline hover:text-brand-700">
-              Voir les offres
-            </Link>
-          </p>
-        ) : (
-          <div className="space-y-2 mt-3">
-            {subs.map((s) => (
-              <div
-                key={s.id}
-                className="card flex flex-wrap items-center justify-between gap-3"
-              >
-                <div>
-                  <p className="font-semibold text-gray-900">{s.plan.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Du {s.startDate.toLocaleDateString("fr-FR")} au{" "}
-                    {s.endDate.toLocaleDateString("fr-FR")}
-                  </p>
-                  {s.frozenAt && (
-                    <p className="text-xs text-amber-600 mt-0.5">
-                      En pause depuis le {s.frozenAt.toLocaleDateString("fr-FR")}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`badge ${
-                      s.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : s.status === "FROZEN"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {s.status === "ACTIVE" ? "Actif" : s.status === "FROZEN" ? "En pause" : s.status}
-                  </span>
-                  {s.status === "ACTIVE" && <FreezeButton subscriptionId={s.id} />}
-                  {s.status === "FROZEN" && <UnfreezeButton subscriptionId={s.id} />}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <p className="section-title">Historique</p>
-        <div className="card overflow-x-auto mt-3">
-          <table className="w-full text-sm">
-            <thead className="text-left text-gray-400 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="pb-3">Date</th>
-                <th className="pb-3">Type</th>
-                <th className="pb-3">Description</th>
-                <th className="pb-3 text-right">Crédits</th>
-                <th className="pb-3 text-right">Montant</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {transactions.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-400">
-                    Aucune transaction
-                  </td>
-                </tr>
-              )}
-              {transactions.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50/50">
-                  <td className="py-3 text-gray-500">
-                    {t.createdAt.toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="py-3 text-gray-700">{t.type}</td>
-                  <td className="py-3 text-gray-500">{t.description}</td>
-                  <td
-                    className={`py-3 text-right font-medium ${
-                      t.creditsDelta > 0 ? "text-green-600" : "text-gray-700"
-                    }`}
-                  >
-                    {t.creditsDelta > 0 ? `+${t.creditsDelta}` : t.creditsDelta || "—"}
-                  </td>
-                  <td className="py-3 text-right text-gray-700">
-                    {t.amountCents > 0 ? formatPrice(t.amountCents) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Link
+            href={`/check-in/${checkInNow.session.id}`}
+            className="bg-cream-50 text-brand-600 px-6 py-3 text-[11px] uppercase tracking-[0.2em] font-semibold hover:bg-accent-100 transition-colors"
+          >
+            S'enregistrer →
+          </Link>
         </div>
-      </section>
+      )}
+
+      {/* Next class hero */}
+      {nextBooking && !checkInNow && (
+        <div>
+          <p className="section-title mb-3">Prochain cours</p>
+          <NextClassHero booking={nextBooking} now={now} />
+        </div>
+      )}
+
+      {/* Tabs: À venir | Historique | Abonnements | Transactions */}
+      <AccountTabs
+        upcoming={upcomingBookings.map((b) => ({
+          id: b.id,
+          sessionId: b.session.id,
+          status: b.status,
+          waitlistPos: b.waitlistPos,
+          classTypeName: b.session.classType.name,
+          classTypeColor: b.session.classType.color,
+          creditCost: b.session.classType.creditCost,
+          startTime: b.session.startTime.toISOString(),
+          endTime: b.session.endTime.toISOString(),
+          instructorName: `${b.session.instructor.firstName} ${b.session.instructor.lastName}`,
+          locationName: b.session.location.name,
+          locationAddress: b.session.location.address,
+          checkedIn: b.session.checkIns.length > 0,
+          calLink: googleCalLink({
+            classTypeName: b.session.classType.name,
+            startTime: b.session.startTime,
+            endTime: b.session.endTime,
+            instructorName: `${b.session.instructor.firstName} ${b.session.instructor.lastName}`,
+            locationName: b.session.location.name,
+            locationAddress: b.session.location.address,
+          }),
+        }))}
+        past={pastBookings.map((b) => ({
+          id: b.id,
+          status: b.status,
+          classTypeName: b.session.classType.name,
+          classTypeColor: b.session.classType.color,
+          startTime: b.session.startTime.toISOString(),
+          instructorName: `${b.session.instructor.firstName} ${b.session.instructor.lastName}`,
+          locationName: b.session.location.name,
+          creditsUsed: b.creditsUsed,
+          feeApplied: b.feeApplied,
+        }))}
+        subs={subs.map((s) => ({
+          id: s.id,
+          planName: s.plan.name,
+          status: s.status,
+          startDate: s.startDate.toISOString(),
+          endDate: s.endDate.toISOString(),
+          frozenAt: s.frozenAt?.toISOString() ?? null,
+        }))}
+        transactions={transactions.map((t) => ({
+          id: t.id,
+          type: t.type,
+          description: t.description,
+          creditsDelta: t.creditsDelta,
+          amountCents: t.amountCents,
+          createdAt: t.createdAt.toISOString(),
+        }))}
+      />
+    </div>
+  );
+}
+
+// ─── Next class hero ─────────────────────────────────────────────────────────
+
+function NextClassHero({ booking, now }: {
+  booking: Awaited<ReturnType<typeof db.booking.findMany>>[0] & {
+    session: {
+      id: string;
+      classType: { name: string; color: string; durationMin: number };
+      instructor: { firstName: string; lastName: string };
+      location: { name: string; address: string | null };
+      startTime: Date;
+      endTime: Date;
+      checkIns: { id: string }[];
+    };
+  };
+  now: Date;
+}) {
+  const start = booking.session.startTime;
+  const msUntil = start.getTime() - now.getTime();
+  const hoursUntil = Math.floor(msUntil / 3600000);
+  const minutesUntil = Math.floor((msUntil % 3600000) / 60000);
+  const daysUntil = Math.floor(msUntil / 86400000);
+
+  let countdownLabel = "";
+  if (daysUntil >= 1) countdownLabel = `Dans ${daysUntil} jour${daysUntil > 1 ? "s" : ""}`;
+  else if (hoursUntil >= 1) countdownLabel = `Dans ${hoursUntil}h${minutesUntil > 0 ? minutesUntil : ""}`;
+  else countdownLabel = `Dans ${minutesUntil} min`;
+
+  return (
+    <div
+      className="relative overflow-hidden bg-white border border-stone2-200 p-6 flex flex-wrap items-center gap-6"
+    >
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1.5"
+        style={{ backgroundColor: booking.session.classType.color }}
+      />
+      <div className="pl-4 flex-1 min-w-[200px]">
+        <p className="section-title mb-1">
+          {start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+          {" · "}
+          {start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+        </p>
+        <h2 className="font-serif text-3xl font-medium text-brand-600">
+          {booking.session.classType.name}
+        </h2>
+        <p className="text-stone2-500 text-sm mt-1">
+          {booking.session.instructor.firstName} {booking.session.instructor.lastName}
+          {" · "}
+          {booking.session.location.name}
+          {" · "}
+          {booking.session.classType.durationMin} min
+        </p>
+      </div>
+      <div className="flex flex-col items-end gap-2 shrink-0">
+        <div className="text-right">
+          <p className="font-serif text-3xl text-accent-600">{countdownLabel}</p>
+          {booking.session.checkIns.length > 0 && (
+            <p className="text-xs text-green-700 font-medium mt-0.5">✓ Enregistré·e</p>
+          )}
+        </div>
+        {booking.status === "WAITLIST" && (
+          <span className="badge bg-accent-100 text-accent-600">
+            Liste d'attente · #{booking.waitlistPos}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

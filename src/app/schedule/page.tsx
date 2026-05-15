@@ -22,11 +22,10 @@ export default async function SchedulePage({
   const baseDate = searchParams.date ? new Date(searchParams.date) : new Date();
   if (Number.isNaN(baseDate.getTime())) baseDate.setTime(Date.now());
 
-  // For "grid" view, start at Monday of the week containing baseDate
   let rangeStart: Date;
   let numDays: number;
   if (view === "grid") {
-    const dow = baseDate.getDay(); // 0=Sun..6=Sat
+    const dow = baseDate.getDay();
     const diffToMonday = (dow + 6) % 7;
     rangeStart = startOfDay(addDays(baseDate, -diffToMonday));
     numDays = 7;
@@ -42,7 +41,10 @@ export default async function SchedulePage({
     startOfDay(addDays(rangeStart, i))
   );
 
-  const locations = await db.location.findMany({ orderBy: { name: "asc" } });
+  const [locations, classTypes] = await Promise.all([
+    db.location.findMany({ orderBy: { name: "asc" } }),
+    db.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+  ]);
   const locationFilter = searchParams.location;
 
   const sessions = await db.session.findMany({
@@ -53,11 +55,12 @@ export default async function SchedulePage({
     },
     include: {
       classType: true,
-      instructor: { select: { firstName: true, lastName: true } },
+      instructor: { select: { id: true, firstName: true, lastName: true, instructorBio: true } },
       location: true,
       bookings: {
         select: { id: true, userId: true, status: true, waitlistPos: true },
       },
+      checkIns: { select: { userId: true } },
     },
     orderBy: { startTime: "asc" },
   });
@@ -71,13 +74,12 @@ export default async function SchedulePage({
       const mine = s.bookings.find(
         (b) => b.userId === user.id && b.status !== "CANCELLED"
       );
-      if (mine) {
+      if (mine)
         myBookingsMap.set(s.id, {
           id: mine.id,
           status: mine.status,
           waitlistPos: mine.waitlistPos,
         });
-      }
     }
   }
 
@@ -102,13 +104,20 @@ export default async function SchedulePage({
         confirmedCount: confirmed,
         waitlistCount: waitlist,
         classType: {
+          id: s.classType.id,
           name: s.classType.name,
           color: s.classType.color,
           creditCost: s.classType.creditCost,
           durationMin: s.classType.durationMin,
+          description: s.classType.description,
         },
-        instructor: `${s.instructor.firstName} ${s.instructor.lastName}`,
-        location: s.location.name,
+        instructor: {
+          id: s.instructor.id,
+          name: `${s.instructor.firstName} ${s.instructor.lastName}`,
+          firstName: s.instructor.firstName,
+          bio: s.instructor.instructorBio,
+        },
+        location: { name: s.location.name, address: s.location.address },
         myBooking: my,
       };
     }),
@@ -118,7 +127,6 @@ export default async function SchedulePage({
   const prevDate = addDays(baseDate, -navDelta).toISOString().slice(0, 10);
   const nextDate = addDays(baseDate, navDelta).toISOString().slice(0, 10);
 
-  // Build the day strip for quick navigation (7 days centered on baseDate)
   const stripStart = startOfDay(addDays(baseDate, -3));
   const strip = Array.from({ length: 7 }).map((_, i) => {
     const d = addDays(stripStart, i);
@@ -132,9 +140,7 @@ export default async function SchedulePage({
   });
 
   const headerLabel =
-    view === "grid"
-      ? `Semaine du ${formatDate(days[0])}`
-      : view === "week"
+    view === "grid" || view === "week"
       ? `Semaine du ${formatDate(days[0])}`
       : formatDate(days[0]);
 
@@ -145,7 +151,7 @@ export default async function SchedulePage({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="section-title">Studio Boutique</p>
@@ -155,12 +161,13 @@ export default async function SchedulePage({
           <p className="text-sm text-stone2-500 capitalize mt-1">{headerLabel}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* View toggle */}
           <div className="inline-flex border border-brand-600 bg-cream-50">
             {(["day", "week", "grid"] as const).map((v) => (
               <Link
                 key={v}
                 href={buildHref(v)}
-                className={`px-4 py-2 text-[10px] uppercase tracking-[0.18em] ${
+                className={`px-4 py-2 text-[10px] uppercase tracking-[0.18em] transition-colors ${
                   view === v
                     ? "bg-brand-600 text-cream-50"
                     : "text-brand-600 hover:bg-cream-100"
@@ -170,11 +177,12 @@ export default async function SchedulePage({
               </Link>
             ))}
           </div>
+          {/* Location filter */}
           <form className="flex items-center gap-2">
             <select
               name="location"
               defaultValue={locationFilter ?? ""}
-              className="input"
+              className="input text-sm"
             >
               <option value="">Tous les studios</option>
               {locations.map((l) => (
@@ -185,28 +193,25 @@ export default async function SchedulePage({
             </select>
             <input type="hidden" name="date" value={searchParams.date ?? ""} />
             <input type="hidden" name="view" value={view} />
-            <button className="btn-secondary">Filtrer</button>
+            <button className="btn-secondary py-2">Filtrer</button>
           </form>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 bg-white border border-stone2-200 p-2">
+      {/* Day strip */}
+      <div className="flex items-center justify-between gap-2 bg-white border border-stone2-200 p-1.5">
         <Link
-          href={`/schedule?view=${view}&date=${prevDate}${
-            locationFilter ? `&location=${locationFilter}` : ""
-          }`}
-          className="btn-ghost"
+          href={`/schedule?view=${view}&date=${prevDate}${locationFilter ? `&location=${locationFilter}` : ""}`}
+          className="btn-ghost px-3 py-2"
         >
           ←
         </Link>
-        <div className="flex gap-1 overflow-x-auto">
+        <div className="flex gap-0.5 overflow-x-auto">
           {strip.map((d) => (
             <Link
               key={d.iso}
-              href={`/schedule?view=${view}&date=${d.iso}${
-                locationFilter ? `&location=${locationFilter}` : ""
-              }`}
-              className={`flex flex-col items-center px-3 py-2 min-w-[64px] transition-colors ${
+              href={`/schedule?view=${view}&date=${d.iso}${locationFilter ? `&location=${locationFilter}` : ""}`}
+              className={`flex flex-col items-center px-3 py-2 min-w-[56px] transition-colors ${
                 d.isActive
                   ? "bg-brand-600 text-cream-50"
                   : d.isToday
@@ -214,33 +219,25 @@ export default async function SchedulePage({
                   : "text-stone2-600 hover:bg-cream-100"
               }`}
             >
-              <span className="text-[10px] uppercase tracking-widest">
-                {d.label}
-              </span>
-              <span className="font-serif text-xl">{d.day}</span>
+              <span className="text-[9px] uppercase tracking-widest">{d.label}</span>
+              <span className="font-serif text-xl leading-tight">{d.day}</span>
             </Link>
           ))}
         </div>
         <Link
-          href={`/schedule?view=${view}&date=${nextDate}${
-            locationFilter ? `&location=${locationFilter}` : ""
-          }`}
-          className="btn-ghost"
+          href={`/schedule?view=${view}&date=${nextDate}${locationFilter ? `&location=${locationFilter}` : ""}`}
+          className="btn-ghost px-3 py-2"
         >
           →
         </Link>
       </div>
 
       {!user && (
-        <div className="bg-accent-50 border border-accent-200 px-5 py-4">
+        <div className="bg-cream-100 border-l-4 border-accent-500 px-5 py-3">
           <p className="text-sm text-brand-600">
-            <Link href="/login" className="font-semibold underline">
-              Connectez-vous
-            </Link>{" "}
+            <Link href="/login" className="font-semibold underline">Connectez-vous</Link>{" "}
             ou{" "}
-            <Link href="/register" className="font-semibold underline">
-              créez un compte
-            </Link>{" "}
+            <Link href="/register" className="font-semibold underline">créez un compte</Link>{" "}
             pour réserver vos cours.
           </p>
         </div>
@@ -248,9 +245,15 @@ export default async function SchedulePage({
 
       <ScheduleClient
         days={enriched}
+        classTypes={classTypes.map((ct) => ({
+          id: ct.id,
+          name: ct.name,
+          color: ct.color,
+        }))}
         userCredits={user?.creditsBalance ?? null}
         isLoggedIn={!!user}
         view={view}
+        now={new Date().toISOString()}
       />
     </div>
   );
