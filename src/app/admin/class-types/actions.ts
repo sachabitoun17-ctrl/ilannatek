@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -23,7 +24,7 @@ export async function createClassTypeAction(formData: FormData) {
     color: formData.get("color") || "#ec4899",
   });
   await db.classType.create({ data });
-  revalidatePath("/admin/class-types");
+  redirect("/admin/class-types?success=✓ Type de cours créé");
 }
 
 export async function deleteClassTypeAction(id: string) {

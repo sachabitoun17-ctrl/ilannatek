@@ -1,10 +1,16 @@
 import { getSettings } from "@/lib/settings";
 import { updateSettingsAction } from "./actions";
+import { AdminToast } from "@/components/AdminToast";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: { success?: string; error?: string };
+}) {
   const s = await getSettings();
   return (
     <div className="space-y-6">
+      <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
       <h1 className="text-2xl font-bold">Paramètres du studio</h1>
       <form action={updateSettingsAction} className="card space-y-4 max-w-2xl">
         <div>

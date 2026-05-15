@@ -51,6 +51,13 @@ export default async function AdminBookingsPage({
             </tr>
           </thead>
           <tbody className="divide-y">
+            {bookings.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-sm text-gray-400">
+                  Aucune réservation
+                </td>
+              </tr>
+            )}
             {bookings.map((b) => (
               <tr key={b.id}>
                 <td className="py-2">{formatDateTime(b.session.startTime)}</td>

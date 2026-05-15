@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { updateProfileAction, changePasswordAction } from "./actions";
+import { SubmitButton } from "./SubmitButton";
 
 export default async function ProfilePage({
   searchParams,
@@ -12,6 +14,9 @@ export default async function ProfilePage({
 
   return (
     <div className="max-w-lg mx-auto space-y-8">
+      <Link href="/account" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-6">
+        ← Mon compte
+      </Link>
       <h1 className="text-2xl font-bold">Mon profil</h1>
 
       {searchParams.success && (
@@ -45,7 +50,7 @@ export default async function ProfilePage({
           <label className="label">Téléphone</label>
           <input name="phone" type="tel" defaultValue={user.phone ?? ""} className="input" placeholder="+33 6 00 00 00 00" />
         </div>
-        <button className="btn-primary">Enregistrer</button>
+        <SubmitButton label="Enregistrer" pendingLabel="Enregistrement..." />
       </form>
 
       <form action={changePasswordAction} className="card space-y-4">
@@ -62,7 +67,7 @@ export default async function ProfilePage({
           <label className="label">Confirmer</label>
           <input name="passwordConfirm" type="password" required minLength={8} className="input" />
         </div>
-        <button className="btn-primary">Changer le mot de passe</button>
+        <SubmitButton label="Changer le mot de passe" pendingLabel="Changement..." />
       </form>
     </div>
   );

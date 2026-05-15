@@ -50,14 +50,19 @@ export default async function SelfCheckInPage({
       </div>
 
       {!booking || booking.status !== "CONFIRMED" ? (
-        <div className="card bg-amber-50 border-amber-200 text-sm">
-          {!booking
-            ? "Vous n'avez pas réservé ce cours."
-            : booking.status === "ATTENDED"
-            ? "✓ Vous êtes déjà pointé(e) pour ce cours."
-            : booking.status === "WAITLIST"
-            ? `Vous êtes sur liste d'attente (#${booking.waitlistPos}).`
-            : `Réservation au statut ${booking.status}.`}
+        <div className="space-y-4">
+          <div className="card bg-amber-50 border-amber-200 text-sm">
+            {!booking
+              ? "Vous n'avez pas réservé ce cours."
+              : booking.status === "ATTENDED"
+              ? "✓ Vous êtes déjà pointé(e) pour ce cours."
+              : booking.status === "WAITLIST"
+              ? `Vous êtes sur liste d'attente (#${booking.waitlistPos}).`
+              : `Réservation au statut ${booking.status}.`}
+          </div>
+          <Link href="/account" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+            ← Mon compte
+          </Link>
         </div>
       ) : (
         <form action={selfCheckInAction} className="card space-y-2">

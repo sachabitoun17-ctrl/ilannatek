@@ -1,11 +1,17 @@
 import { db } from "@/lib/db";
 import { createLocationAction, deleteLocationAction } from "./actions";
 import DeleteForm from "@/components/DeleteForm";
+import { AdminToast } from "@/components/AdminToast";
 
-export default async function LocationsPage() {
+export default async function LocationsPage({
+  searchParams,
+}: {
+  searchParams: { success?: string; error?: string };
+}) {
   const items = await db.location.findMany({ orderBy: { name: "asc" } });
   return (
     <div className="space-y-6">
+      <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
       <h1 className="text-2xl font-bold">Studios</h1>
       <form
         action={createLocationAction}
@@ -29,6 +35,13 @@ export default async function LocationsPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-sm text-gray-400">
+                  Aucun studio
+                </td>
+              </tr>
+            )}
             {items.map((l) => (
               <tr key={l.id}>
                 <td className="py-2 font-medium">{l.name}</td>

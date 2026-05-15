@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -17,7 +18,7 @@ export async function createLocationAction(formData: FormData) {
     address: formData.get("address") || undefined,
   });
   await db.location.create({ data });
-  revalidatePath("/admin/locations");
+  redirect("/admin/locations?success=✓ Studio créé");
 }
 
 export async function deleteLocationAction(id: string) {

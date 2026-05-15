@@ -1,11 +1,17 @@
 import { db } from "@/lib/db";
 import { createClassTypeAction, deleteClassTypeAction } from "./actions";
 import DeleteForm from "@/components/DeleteForm";
+import { AdminToast } from "@/components/AdminToast";
 
-export default async function ClassTypesPage() {
+export default async function ClassTypesPage({
+  searchParams,
+}: {
+  searchParams: { success?: string; error?: string };
+}) {
   const items = await db.classType.findMany({ orderBy: { name: "asc" } });
   return (
     <div className="space-y-6">
+      <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
       <h1 className="text-2xl font-bold">Types de cours</h1>
       <form action={createClassTypeAction} className="card grid gap-3 md:grid-cols-5">
         <input name="name" placeholder="Nom" required className="input" />
@@ -50,6 +56,13 @@ export default async function ClassTypesPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-sm text-gray-400">
+                  Aucun type de cours
+                </td>
+              </tr>
+            )}
             {items.map((c) => (
               <tr key={c.id}>
                 <td className="py-2 font-medium">{c.name}</td>

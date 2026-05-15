@@ -2,11 +2,17 @@ import { db } from "@/lib/db";
 import { createPromoAction, togglePromoAction, deletePromoAction } from "./actions";
 import DeleteForm from "@/components/DeleteForm";
 import { formatPrice } from "@/lib/utils";
+import { AdminToast } from "@/components/AdminToast";
 
-export default async function PromosPage() {
+export default async function PromosPage({
+  searchParams,
+}: {
+  searchParams: { success?: string; error?: string };
+}) {
   const codes = await db.promoCode.findMany({ orderBy: { createdAt: "desc" } });
   return (
     <div className="space-y-6">
+      <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
       <h1 className="text-2xl font-bold">Codes promo</h1>
       <form action={createPromoAction} className="card grid gap-3 md:grid-cols-4">
         <input name="code" placeholder="CODE" required className="input uppercase" />

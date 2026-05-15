@@ -54,6 +54,13 @@ export default async function UsersPage({
             </tr>
           </thead>
           <tbody className="divide-y">
+            {users.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-sm text-gray-400">
+                  Aucun membre trouvé
+                </td>
+              </tr>
+            )}
             {users.map((u) => (
               <tr key={u.id}>
                 <td className="py-2">

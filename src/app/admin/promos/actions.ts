@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -39,7 +40,7 @@ export async function createPromoAction(formData: FormData) {
     action: "CREATE_PROMO",
     metadata: { code: data.code },
   });
-  revalidatePath("/admin/promos");
+  redirect("/admin/promos?success=✓ Code promo créé");
 }
 
 export async function togglePromoAction(formData: FormData) {

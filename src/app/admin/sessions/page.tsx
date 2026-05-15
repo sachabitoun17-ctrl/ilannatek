@@ -39,6 +39,13 @@ export default async function AdminSessionsPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
+            {sessions.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-sm text-gray-400">
+                  Aucun cours programmé
+                </td>
+              </tr>
+            )}
             {sessions.map((s) => {
               const confirmed = s.bookings.filter(
                 (b) => b.status === "CONFIRMED"

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -28,9 +29,9 @@ export async function createPlanAction(formData: FormData) {
     description: raw.description || undefined,
   });
   await db.plan.create({ data });
-  revalidatePath("/admin/plans");
   revalidatePath("/packs");
   revalidatePath("/subscriptions");
+  redirect("/admin/plans?success=✓ Plan créé");
 }
 
 export async function deletePlanAction(id: string) {

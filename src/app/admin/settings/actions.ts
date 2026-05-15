@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { updateSettings } from "@/lib/settings";
@@ -35,5 +36,5 @@ export async function updateSettingsAction(formData: FormData) {
     action: "UPDATE_SETTINGS",
     metadata: data,
   });
-  revalidatePath("/admin/settings");
+  redirect("/admin/settings?success=✓ Paramètres enregistrés");
 }

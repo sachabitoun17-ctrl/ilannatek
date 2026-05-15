@@ -6,11 +6,17 @@ import {
   togglePlanAction,
 } from "./actions";
 import DeleteForm from "@/components/DeleteForm";
+import { AdminToast } from "@/components/AdminToast";
 
-export default async function PlansPage() {
+export default async function PlansPage({
+  searchParams,
+}: {
+  searchParams: { success?: string; error?: string };
+}) {
   const plans = await db.plan.findMany({ orderBy: { priceCents: "asc" } });
   return (
     <div className="space-y-6">
+      <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
       <h1 className="text-2xl font-bold">Plans & packs</h1>
       <form
         action={createPlanAction}
@@ -71,6 +77,13 @@ export default async function PlansPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
+            {plans.length === 0 && (
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
+                  Aucun plan
+                </td>
+              </tr>
+            )}
             {plans.map((p) => (
               <tr key={p.id}>
                 <td className="py-2 font-medium">{p.name}</td>

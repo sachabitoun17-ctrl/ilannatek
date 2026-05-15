@@ -1,13 +1,19 @@
 import { db } from "@/lib/db";
 import { createInstructorAction, toggleInstructorRoleAction } from "./actions";
+import { AdminToast } from "@/components/AdminToast";
 
-export default async function InstructorsPage() {
+export default async function InstructorsPage({
+  searchParams,
+}: {
+  searchParams: { success?: string; error?: string };
+}) {
   const instructors = await db.user.findMany({
     where: { role: { in: ["INSTRUCTOR", "ADMIN"] } },
     orderBy: { firstName: "asc" },
   });
   return (
     <div className="space-y-6">
+      <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
       <h1 className="text-2xl font-bold">Instructeurs</h1>
       <form
         action={createInstructorAction}
@@ -47,6 +53,13 @@ export default async function InstructorsPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
+            {instructors.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-sm text-gray-400">
+                  Aucun instructeur
+                </td>
+              </tr>
+            )}
             {instructors.map((i) => (
               <tr key={i.id}>
                 <td className="py-2 font-medium">
