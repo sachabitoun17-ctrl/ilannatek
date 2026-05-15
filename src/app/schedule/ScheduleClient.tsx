@@ -37,6 +37,7 @@ export default function ScheduleClient({
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; kind: "ok" | "err" } | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   const handleBook = (sessionId: string) => {
     startTransition(async () => {
@@ -57,9 +58,9 @@ export default function ScheduleClient({
   };
 
   const handleCancel = (bookingId: string) => {
-    if (!confirm("Annuler cette réservation ?")) return;
     startTransition(async () => {
       const result = await cancelAction(bookingId);
+      setCancelingId(null);
       setMessage(
         result.ok
           ? { text: "Réservation annulée", kind: "ok" }
@@ -70,10 +71,10 @@ export default function ScheduleClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {message && (
         <div
-          className={`fixed bottom-4 right-4 z-50 rounded-md px-4 py-2 text-sm shadow-lg ${
+          className={`fixed bottom-4 right-4 z-50 rounded-md px-4 py-2 text-sm ${
             message.kind === "ok"
               ? "bg-green-50 text-green-800 border border-green-200"
               : "bg-red-50 text-red-800 border border-red-200"
@@ -86,7 +87,7 @@ export default function ScheduleClient({
       {days.map((day) => (
         <div key={day.date}>
           {view === "week" && (
-            <h2 className="font-semibold text-lg capitalize mb-3 text-gray-800">
+            <h2 className="font-semibold text-lg capitalize mb-4 text-gray-800">
               {formatDate(day.date)}
             </h2>
           )}
@@ -95,28 +96,32 @@ export default function ScheduleClient({
               Aucun cours ce jour
             </p>
           ) : view === "day" ? (
-            <div className="bg-white rounded-lg border border-gray-200 divide-y">
+            <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-100">
               {day.sessions.map((s) => (
                 <SessionRow
                   key={s.id}
                   s={s}
                   isLoggedIn={isLoggedIn}
                   pending={pending}
+                  cancelingId={cancelingId}
                   onBook={handleBook}
-                  onCancel={handleCancel}
+                  onCancelRequest={setCancelingId}
+                  onCancelConfirm={handleCancel}
                 />
               ))}
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {day.sessions.map((s) => (
                 <SessionCard
                   key={s.id}
                   s={s}
                   isLoggedIn={isLoggedIn}
                   pending={pending}
+                  cancelingId={cancelingId}
                   onBook={handleBook}
-                  onCancel={handleCancel}
+                  onCancelRequest={setCancelingId}
+                  onCancelConfirm={handleCancel}
                 />
               ))}
             </div>
@@ -136,23 +141,29 @@ function SessionRow({
   s,
   isLoggedIn,
   pending,
+  cancelingId,
   onBook,
-  onCancel,
+  onCancelRequest,
+  onCancelConfirm,
 }: {
   s: SessionItem;
   isLoggedIn: boolean;
   pending: boolean;
+  cancelingId: string | null;
   onBook: (id: string) => void;
-  onCancel: (id: string) => void;
+  onCancelRequest: (id: string | null) => void;
+  onCancelConfirm: (id: string) => void;
 }) {
   const full = s.confirmedCount >= s.capacity;
   const spotsLeft = Math.max(0, s.capacity - s.confirmedCount);
   const isMine = !!s.myBooking;
+  const isConfirming = isMine && cancelingId === s.myBooking!.id;
+
   return (
-    <div className="flex flex-wrap items-center gap-4 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-4 px-5 py-4">
       <div
-        className="w-1 h-12 rounded-full shrink-0"
-        style={{ background: s.classType.color }}
+        className="w-1 self-stretch rounded-full shrink-0"
+        style={{ background: s.classType.color, minHeight: "2.5rem" }}
       />
       <div className="w-24 shrink-0">
         <div className="font-semibold text-gray-900">{formatTime(s.startTime)}</div>
@@ -180,36 +191,55 @@ function SessionRow({
       </div>
       <div className="shrink-0">
         {isMine ? (
-          <div className="flex items-center gap-2">
-            <span
-              className={`badge ${
-                s.myBooking!.status === "CONFIRMED"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-amber-100 text-amber-700"
-              }`}
-            >
-              {s.myBooking!.status === "CONFIRMED"
-                ? "✓ Réservé"
-                : `#${s.myBooking!.waitlistPos}`}
-            </span>
-            <button
-              onClick={() => onCancel(s.myBooking!.id)}
-              disabled={pending}
-              className="text-xs text-red-600 hover:underline"
-            >
-              Annuler
-            </button>
-          </div>
+          isConfirming ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onCancelConfirm(s.myBooking!.id)}
+                disabled={pending}
+                className="text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                Confirmer l&apos;annulation
+              </button>
+              <button
+                onClick={() => onCancelRequest(null)}
+                disabled={pending}
+                className="text-xs px-3 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+              >
+                Garder
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span
+                className={`badge ${
+                  s.myBooking!.status === "CONFIRMED"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                {s.myBooking!.status === "CONFIRMED"
+                  ? "✓ Réservé"
+                  : `#${s.myBooking!.waitlistPos}`}
+              </span>
+              <button
+                onClick={() => onCancelRequest(s.myBooking!.id)}
+                disabled={pending}
+                className="text-xs text-red-500 hover:text-red-700 hover:underline transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          )
         ) : isLoggedIn ? (
           <button
             onClick={() => onBook(s.id)}
             disabled={pending}
-            className={full ? "btn-secondary" : "btn-primary"}
+            className={full ? "btn-secondary text-sm px-4 py-2" : "btn-primary text-sm px-4 py-2"}
           >
             {full ? "Liste d'attente" : "Réserver"}
           </button>
         ) : (
-          <a href="/login" className="btn-secondary">
+          <a href="/login" className="btn-secondary text-sm px-4 py-2">
             Se connecter
           </a>
         )}
@@ -222,34 +252,40 @@ function SessionCard({
   s,
   isLoggedIn,
   pending,
+  cancelingId,
   onBook,
-  onCancel,
+  onCancelRequest,
+  onCancelConfirm,
 }: {
   s: SessionItem;
   isLoggedIn: boolean;
   pending: boolean;
+  cancelingId: string | null;
   onBook: (id: string) => void;
-  onCancel: (id: string) => void;
+  onCancelRequest: (id: string | null) => void;
+  onCancelConfirm: (id: string) => void;
 }) {
   const full = s.confirmedCount >= s.capacity;
   const spotsLeft = Math.max(0, s.capacity - s.confirmedCount);
   const isMine = !!s.myBooking;
+  const isConfirming = isMine && cancelingId === s.myBooking!.id;
+
   return (
     <div
-      className="card flex flex-col gap-2"
-      style={{ borderLeftWidth: 4, borderLeftColor: s.classType.color }}
+      className="card flex flex-col gap-3"
+      style={{ borderLeftWidth: 3, borderLeftColor: s.classType.color }}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">
+          <p className="section-title">
             {formatTime(s.startTime)} — {formatTime(s.endTime)}
           </p>
           <h3 className="font-semibold text-gray-900">{s.classType.name}</h3>
           <p className="text-sm text-gray-600">{s.instructor}</p>
           <p className="text-xs text-gray-500">{s.location}</p>
         </div>
-        <span className="badge bg-gray-100 text-gray-700">
-          {s.classType.creditCost} crédit{s.classType.creditCost > 1 ? "s" : ""}
+        <span className="badge bg-gray-100 text-gray-600">
+          {s.classType.creditCost} cr.
         </span>
       </div>
       <div className="text-xs text-gray-500">
@@ -265,36 +301,55 @@ function SessionCard({
         )}
       </div>
       {isMine ? (
-        <div className="flex flex-col gap-1">
-          <span
-            className={`badge ${
-              s.myBooking!.status === "CONFIRMED"
-                ? "bg-green-100 text-green-700"
-                : "bg-amber-100 text-amber-700"
-            }`}
-          >
-            {s.myBooking!.status === "CONFIRMED"
-              ? "✓ Réservé"
-              : `Liste d'attente · #${s.myBooking!.waitlistPos}`}
-          </span>
-          <button
-            onClick={() => onCancel(s.myBooking!.id)}
-            disabled={pending}
-            className="btn-ghost text-red-600 text-xs"
-          >
-            Annuler
-          </button>
-        </div>
+        isConfirming ? (
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => onCancelConfirm(s.myBooking!.id)}
+              disabled={pending}
+              className="btn-danger w-full text-sm"
+            >
+              Confirmer l&apos;annulation
+            </button>
+            <button
+              onClick={() => onCancelRequest(null)}
+              disabled={pending}
+              className="btn-secondary w-full text-sm"
+            >
+              Garder ma place
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <span
+              className={`badge ${
+                s.myBooking!.status === "CONFIRMED"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {s.myBooking!.status === "CONFIRMED"
+                ? "✓ Réservé"
+                : `Liste d'attente · #${s.myBooking!.waitlistPos}`}
+            </span>
+            <button
+              onClick={() => onCancelRequest(s.myBooking!.id)}
+              disabled={pending}
+              className="text-xs text-red-500 hover:text-red-700 hover:underline transition-colors mt-1"
+            >
+              Annuler ma réservation
+            </button>
+          </div>
+        )
       ) : isLoggedIn ? (
         <button
           onClick={() => onBook(s.id)}
           disabled={pending}
-          className={full ? "btn-secondary" : "btn-primary"}
+          className={full ? "btn-secondary w-full" : "btn-primary w-full"}
         >
           {full ? "Rejoindre la liste d'attente" : "Réserver"}
         </button>
       ) : (
-        <a href="/login" className="btn-secondary text-center">
+        <a href="/login" className="btn-secondary text-center w-full">
           Se connecter pour réserver
         </a>
       )}

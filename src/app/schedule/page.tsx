@@ -113,8 +113,9 @@ export default async function SchedulePage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Planning</h1>
-          <p className="text-sm text-gray-500 capitalize">
+          <p className="section-title">Studio Boutique</p>
+          <h1 className="text-3xl font-bold text-gray-900 mt-1">Planning</h1>
+          <p className="text-sm text-gray-500 capitalize mt-0.5">
             {view === "week"
               ? `Semaine du ${formatDate(days[0])}`
               : formatDate(days[0])}
@@ -159,7 +160,7 @@ export default async function SchedulePage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 bg-white rounded-lg border border-gray-200 p-2">
+      <div className="flex items-center justify-between gap-2 bg-white rounded-xl border border-gray-100 p-2">
         <Link
           href={`/schedule?view=${view}&date=${prevDate}${
             locationFilter ? `&location=${locationFilter}` : ""

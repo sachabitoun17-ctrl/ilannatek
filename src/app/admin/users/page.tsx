@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { adjustCreditsAction, setRoleAction } from "./actions";
+import { adjustCreditsAction } from "./actions";
+import RoleSelect from "./RoleSelect";
 
 export default async function UsersPage({
   searchParams,
@@ -23,23 +24,24 @@ export default async function UsersPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">Membres</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <a href="/api/export/members" className="btn-secondary text-sm">
             Export CSV
           </a>
-        <form className="flex items-center gap-2">
-          <input
-            name="q"
-            placeholder="Rechercher..."
-            defaultValue={q}
-            className="input"
-          />
-          <button className="btn-secondary">Rechercher</button>
-        </form>
+          <form className="flex items-center gap-2">
+            <input
+              name="q"
+              placeholder="Rechercher..."
+              defaultValue={q}
+              className="input"
+            />
+            <button className="btn-secondary">Rechercher</button>
+          </form>
         </div>
       </div>
+
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase text-gray-500">
@@ -59,40 +61,25 @@ export default async function UsersPage({
                 </td>
                 <td>{u.email}</td>
                 <td>{u.creditsBalance}</td>
-                <td>{u.role}</td>
+                <td>
+                  <RoleSelect userId={u.id} currentRole={u.role} />
+                </td>
                 <td className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <form
-                      action={adjustCreditsAction}
-                      className="flex items-center gap-1"
-                    >
-                      <input type="hidden" name="id" value={u.id} />
-                      <input
-                        type="number"
-                        name="delta"
-                        placeholder="±"
-                        className="input w-20 py-1 text-xs"
-                      />
-                      <button className="text-xs text-brand-600 hover:underline">
-                        Ajuster
-                      </button>
-                    </form>
-                    <form action={setRoleAction}>
-                      <input type="hidden" name="id" value={u.id} />
-                      <select
-                        name="role"
-                        defaultValue={u.role}
-                        className="input py-1 text-xs"
-                      >
-                        <option value="USER">USER</option>
-                        <option value="INSTRUCTOR">INSTRUCTOR</option>
-                        <option value="ADMIN">ADMIN</option>
-                      </select>
-                      <button className="text-xs text-brand-600 hover:underline ml-1">
-                        OK
-                      </button>
-                    </form>
-                  </div>
+                  <form
+                    action={adjustCreditsAction}
+                    className="flex items-center justify-end gap-1"
+                  >
+                    <input type="hidden" name="id" value={u.id} />
+                    <input
+                      type="number"
+                      name="delta"
+                      placeholder="±"
+                      className="input w-20 py-1 text-xs"
+                    />
+                    <button className="text-xs text-brand-600 hover:underline">
+                      Ajuster
+                    </button>
+                  </form>
                 </td>
               </tr>
             ))}

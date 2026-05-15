@@ -20,24 +20,29 @@ export default function LoginPage({
 }) {
   const [state, action] = useFormState(loginAction, null);
   return (
-    <div className="max-w-md mx-auto py-10">
-      <div className="card">
-        <h1 className="text-2xl font-bold mb-1">Connexion</h1>
-        <p className="text-sm text-gray-500 mb-6">Heureux de vous revoir</p>
+    <div className="flex flex-col items-center justify-center py-20">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <p className="section-title text-center">Studio Boutique</p>
+          <h1 className="text-3xl font-bold text-gray-900 mt-1">Connexion</h1>
+          <p className="text-sm text-gray-500 mt-2">Heureux de vous revoir</p>
+        </div>
+
         {searchParams?.reset && (
-          <p className="text-sm text-green-600 bg-green-50 rounded p-2 mb-4">
+          <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-md p-3 mb-6">
             Mot de passe mis à jour. Connectez-vous.
           </p>
         )}
-        <form action={action} className="space-y-4">
+
+        <form action={action} className="space-y-5">
           <div>
             <label className="label">Email</label>
             <input type="email" name="email" required className="input" />
           </div>
           <div>
-            <div className="flex items-center justify-between">
-              <label className="label">Mot de passe</label>
-              <Link href="/forgot-password" className="text-xs text-brand-600">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="label mb-0">Mot de passe</label>
+              <Link href="/forgot-password" className="text-xs text-brand-600 hover:text-brand-700">
                 Mot de passe oublié ?
               </Link>
             </div>
@@ -48,9 +53,10 @@ export default function LoginPage({
           )}
           <SubmitButton />
         </form>
-        <p className="text-sm text-gray-500 mt-4 text-center">
+
+        <p className="text-sm text-gray-500 mt-6 text-center">
           Pas encore de compte ?{" "}
-          <Link href="/register" className="text-brand-600 font-medium">
+          <Link href="/register" className="text-brand-600 font-medium hover:text-brand-700">
             Inscrivez-vous
           </Link>
         </p>
