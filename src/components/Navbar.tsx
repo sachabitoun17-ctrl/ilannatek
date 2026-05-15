@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { logoutAction } from "@/app/(auth)/actions";
+import MobileMenu from "./MobileMenu";
 
 type Props = {
   user: {
@@ -14,13 +15,14 @@ type Props = {
 
 export default function Navbar({ user }: Props) {
   return (
-    <header className="bg-brand-600 border-b border-brand-700">
+    <header className="bg-brand-600 border-b border-stone2-700">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between">
-          <div className="flex items-center gap-12">
+          {/* Logo + desktop nav */}
+          <div className="flex items-center gap-10">
             <Link
               href="/"
-              className="text-cream-50 font-serif text-2xl tracking-[0.18em] uppercase"
+              className="text-cream-50 font-serif text-2xl tracking-[0.18em] uppercase shrink-0"
             >
               Ilannatek
             </Link>
@@ -63,10 +65,11 @@ export default function Navbar({ user }: Props) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-5">
+          {/* Desktop right section */}
+          <div className="hidden md:flex items-center gap-5">
             {user ? (
               <>
-                <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-accent-300">
+                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-accent-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent-400" />
                   {user.creditsBalance} crédits
                 </span>
@@ -78,7 +81,7 @@ export default function Navbar({ user }: Props) {
                 </Link>
                 <Link
                   href="/schedule"
-                  className="text-[11px] uppercase tracking-[0.22em] px-5 py-2.5 bg-cream-50 text-brand-600 hover:bg-accent-300 transition-colors"
+                  className="text-[11px] uppercase tracking-[0.22em] px-5 py-2.5 bg-cream-50 text-brand-600 hover:bg-accent-200 transition-colors"
                 >
                   Réserver
                 </Link>
@@ -98,12 +101,22 @@ export default function Navbar({ user }: Props) {
                 </Link>
                 <Link
                   href="/schedule"
-                  className="text-[11px] uppercase tracking-[0.22em] px-5 py-2.5 bg-cream-50 text-brand-600 hover:bg-accent-300 transition-colors"
+                  className="text-[11px] uppercase tracking-[0.22em] px-5 py-2.5 bg-cream-50 text-brand-600 hover:bg-accent-200 transition-colors"
                 >
                   Réserver
                 </Link>
               </>
             )}
+          </div>
+
+          {/* Mobile: credits hint + hamburger */}
+          <div className="flex md:hidden items-center gap-2">
+            {user && (
+              <span className="text-[10px] uppercase tracking-[0.18em] text-accent-300">
+                {user.creditsBalance} cr.
+              </span>
+            )}
+            <MobileMenu user={user} />
           </div>
         </div>
       </div>

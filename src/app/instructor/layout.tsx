@@ -10,18 +10,19 @@ export default async function InstructorLayout({
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between border-b border-gray-200 pb-4">
+      <header className="flex items-center justify-between border-b border-stone2-200 pb-4">
         <div>
-          <h1 className="text-xl font-bold">Espace instructeur</h1>
-          <p className="text-xs text-gray-500">
-            {user.firstName} {user.lastName} ({user.role})
-          </p>
+          <p className="section-title">Espace instructeur</p>
+          <h1 className="font-serif text-3xl font-medium text-brand-600 mt-1">
+            {user.firstName} {user.lastName}
+          </h1>
+          <p className="text-xs text-stone2-500 uppercase tracking-wider mt-0.5">{user.role}</p>
         </div>
-        <nav className="flex gap-3 text-sm">
-          <Link href="/instructor" className="hover:text-brand-600">
+        <nav className="flex gap-4 text-[11px] uppercase tracking-[0.2em]">
+          <Link href="/instructor" className="text-stone2-600 hover:text-brand-600 transition-colors">
             Mes cours
           </Link>
-          <Link href="/instructor/check-in" className="hover:text-brand-600">
+          <Link href="/instructor/check-in" className="text-stone2-600 hover:text-brand-600 transition-colors">
             Check-in
           </Link>
         </nav>

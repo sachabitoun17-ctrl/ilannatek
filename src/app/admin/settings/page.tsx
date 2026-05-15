@@ -11,7 +11,10 @@ export default async function SettingsPage({
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
-      <h1 className="text-2xl font-bold">Paramètres du studio</h1>
+      <div>
+        <p className="section-title">Administration</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Paramètres du studio</h1>
+      </div>
       <form action={updateSettingsAction} className="card space-y-4 max-w-2xl">
         <div>
           <label className="label">Nom du studio</label>
@@ -28,7 +31,7 @@ export default async function SettingsPage({
               required
               className="input"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-stone2-500 mt-1">
               Au-delà de ce délai, frais d&apos;annulation tardive appliqué.
             </p>
           </div>

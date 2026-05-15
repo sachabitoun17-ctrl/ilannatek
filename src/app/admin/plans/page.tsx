@@ -17,7 +17,10 @@ export default async function PlansPage({
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
-      <h1 className="text-2xl font-bold">Plans & packs</h1>
+      <div>
+        <p className="section-title">Administration</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Plans &amp; packs</h1>
+      </div>
       <form
         action={createPlanAction}
         className="card grid gap-3 md:grid-cols-4"
@@ -65,21 +68,21 @@ export default async function PlansPage({
       </form>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-gray-500">
+          <thead className="text-left text-[10px] uppercase tracking-[0.18em] text-stone2-500 border-b border-stone2-100">
             <tr>
-              <th className="py-2">Nom</th>
+              <th className="pb-2">Nom</th>
               <th>Type</th>
               <th>Prix</th>
-              <th>Crédits</th>
-              <th>Cycle</th>
+              <th className="hidden sm:table-cell">Crédits</th>
+              <th className="hidden md:table-cell">Cycle</th>
               <th>Actif</th>
               <th></th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-stone2-100">
             {plans.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
+                <td colSpan={7} className="py-8 text-center text-sm text-stone2-400">
                   Aucun plan
                 </td>
               </tr>
@@ -87,19 +90,25 @@ export default async function PlansPage({
             {plans.map((p) => (
               <tr key={p.id}>
                 <td className="py-2 font-medium">{p.name}</td>
-                <td>{p.type}</td>
+                <td className="text-stone2-600">{p.type}</td>
                 <td>{formatPrice(p.priceCents)}</td>
-                <td>{p.creditsAmount ?? p.creditsPerCycle ?? "—"}</td>
-                <td>{p.intervalDays ? `${p.intervalDays}j` : "—"}</td>
+                <td className="hidden sm:table-cell text-stone2-600">
+                  {p.creditsAmount ?? p.creditsPerCycle ?? "—"}
+                </td>
+                <td className="hidden md:table-cell text-stone2-600">
+                  {p.intervalDays ? `${p.intervalDays}j` : "—"}
+                </td>
                 <td>{p.active ? "✓" : "✗"}</td>
-                <td className="text-right flex justify-end gap-2 py-2">
-                  <form action={togglePlanAction}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <button className="text-xs text-brand-600 hover:underline">
-                      {p.active ? "Désactiver" : "Activer"}
-                    </button>
-                  </form>
-                  <DeleteForm action={deletePlanAction} id={p.id} />
+                <td className="text-right py-2">
+                  <div className="flex justify-end gap-2">
+                    <form action={togglePlanAction}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <button className="text-xs text-brand-600 hover:underline">
+                        {p.active ? "Désactiver" : "Activer"}
+                      </button>
+                    </form>
+                    <DeleteForm action={deletePlanAction} id={p.id} />
+                  </div>
                 </td>
               </tr>
             ))}

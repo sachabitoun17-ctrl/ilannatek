@@ -12,7 +12,10 @@ export default async function LocationsPage({
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
-      <h1 className="text-2xl font-bold">Studios</h1>
+      <div>
+        <p className="section-title">Administration</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Studios</h1>
+      </div>
       <form
         action={createLocationAction}
         className="card grid gap-3 md:grid-cols-3"
@@ -27,17 +30,17 @@ export default async function LocationsPage({
       </form>
       <div className="card">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-gray-500">
+          <thead className="text-left text-[10px] uppercase tracking-[0.18em] text-stone2-500 border-b border-stone2-100">
             <tr>
-              <th className="py-2">Nom</th>
+              <th className="pb-2">Nom</th>
               <th>Adresse</th>
               <th></th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-stone2-100">
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-sm text-gray-400">
+                <td colSpan={3} className="py-8 text-center text-sm text-stone2-400">
                   Aucun studio
                 </td>
               </tr>
@@ -45,7 +48,7 @@ export default async function LocationsPage({
             {items.map((l) => (
               <tr key={l.id}>
                 <td className="py-2 font-medium">{l.name}</td>
-                <td className="text-gray-600">{l.address}</td>
+                <td className="text-stone2-600">{l.address}</td>
                 <td className="text-right">
                   <DeleteForm action={deleteLocationAction} id={l.id} />
                 </td>

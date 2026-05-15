@@ -44,27 +44,37 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Tableau de bord</h1>
+      <div>
+        <p className="section-title">Administration</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Tableau de bord</h1>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Membres" value={users.toString()} />
         <Stat label="Cours aujourd'hui" value={sessionsToday.toString()} />
-        <Stat label="Réservations aujourd'hui" value={bookingsToday.toString()} />
+        <Stat label="Réservations" value={bookingsToday.toString()} />
         <Stat label="CA du mois" value={formatPrice(monthlyRevenue)} />
       </div>
 
-      <div className="card">
-        <h2 className="font-semibold mb-3">Prochains cours</h2>
+      <div className="card overflow-x-auto">
+        <p className="section-title mb-4">Prochains cours</p>
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-gray-500">
+          <thead className="text-left text-[10px] uppercase tracking-[0.18em] text-stone2-500 border-b border-stone2-100">
             <tr>
-              <th className="py-2">Date</th>
+              <th className="pb-2">Date</th>
               <th>Cours</th>
-              <th>Instructeur</th>
+              <th className="hidden sm:table-cell">Instructeur</th>
               <th className="text-right">Inscrits</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-stone2-100">
+            {upcomingSessions.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-sm text-stone2-400">
+                  Aucun cours programmé
+                </td>
+              </tr>
+            )}
             {upcomingSessions.map((s) => {
               const confirmed = s.bookings.filter(
                 (b) => b.status === "CONFIRMED"
@@ -74,20 +84,20 @@ export default async function AdminDashboard() {
               ).length;
               return (
                 <tr key={s.id}>
-                  <td className="py-2">
+                  <td className="py-2 text-stone2-600 whitespace-nowrap">
                     {s.startTime.toLocaleString("fr-FR", {
                       dateStyle: "short",
                       timeStyle: "short",
                     })}
                   </td>
-                  <td>{s.classType.name}</td>
-                  <td>
+                  <td className="font-medium">{s.classType.name}</td>
+                  <td className="hidden sm:table-cell text-stone2-600">
                     {s.instructor.firstName} {s.instructor.lastName}
                   </td>
                   <td className="text-right">
                     {confirmed}/{s.capacity}
                     {waitlist > 0 && (
-                      <span className="text-amber-600"> +{waitlist}</span>
+                      <span className="text-accent-600"> +{waitlist}</span>
                     )}
                   </td>
                 </tr>
@@ -103,8 +113,8 @@ export default async function AdminDashboard() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card">
-      <p className="text-xs uppercase text-gray-500">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
+      <p className="section-title">{label}</p>
+      <p className="font-serif text-3xl font-medium text-brand-600 mt-1">{value}</p>
     </div>
   );
 }

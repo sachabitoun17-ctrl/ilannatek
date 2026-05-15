@@ -13,7 +13,10 @@ export default async function PromosPage({
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
-      <h1 className="text-2xl font-bold">Codes promo</h1>
+      <div>
+        <p className="section-title">Administration</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Codes promo</h1>
+      </div>
       <form action={createPromoAction} className="card grid gap-3 md:grid-cols-4">
         <input name="code" placeholder="CODE" required className="input uppercase" />
         <select name="discountType" required className="input">
@@ -51,22 +54,22 @@ export default async function PromosPage({
       </form>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-gray-500">
+          <thead className="text-left text-[10px] uppercase tracking-[0.18em] text-stone2-500 border-b border-stone2-100">
             <tr>
-              <th className="py-2">Code</th>
-              <th>Type</th>
+              <th className="pb-2">Code</th>
+              <th className="hidden sm:table-cell">Type</th>
               <th>Valeur</th>
-              <th>Utilisations</th>
-              <th>Expire</th>
+              <th className="hidden md:table-cell">Utilisations</th>
+              <th className="hidden sm:table-cell">Expire</th>
               <th>Actif</th>
               <th></th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-stone2-100">
             {codes.map((p) => (
               <tr key={p.id}>
-                <td className="py-2 font-mono">{p.code}</td>
-                <td>{p.discountType}</td>
+                <td className="py-2 font-mono font-medium">{p.code}</td>
+                <td className="hidden sm:table-cell text-stone2-600">{p.discountType}</td>
                 <td>
                   {p.discountType === "PERCENT"
                     ? `${p.discountValue}%`
@@ -74,28 +77,30 @@ export default async function PromosPage({
                     ? formatPrice(p.discountValue)
                     : `${p.discountValue} crédits`}
                 </td>
-                <td>
+                <td className="hidden md:table-cell text-stone2-600">
                   {p.uses}
                   {p.maxUses ? `/${p.maxUses}` : ""}
                 </td>
-                <td className="text-gray-500">
+                <td className="hidden sm:table-cell text-stone2-500">
                   {p.expiresAt ? p.expiresAt.toLocaleDateString("fr-FR") : "—"}
                 </td>
                 <td>{p.active ? "✓" : "✗"}</td>
-                <td className="text-right flex justify-end gap-2 py-2">
-                  <form action={togglePromoAction}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <button className="text-xs text-brand-600 hover:underline">
-                      {p.active ? "Désactiver" : "Activer"}
-                    </button>
-                  </form>
-                  <DeleteForm action={deletePromoAction} id={p.id} />
+                <td className="text-right py-2">
+                  <div className="flex justify-end gap-2">
+                    <form action={togglePromoAction}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <button className="text-xs text-brand-600 hover:underline">
+                        {p.active ? "Désactiver" : "Activer"}
+                      </button>
+                    </form>
+                    <DeleteForm action={deletePromoAction} id={p.id} />
+                  </div>
                 </td>
               </tr>
             ))}
             {codes.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-center py-6 text-gray-400">
+                <td colSpan={7} className="text-center py-6 text-stone2-400">
                   Aucun code
                 </td>
               </tr>

@@ -19,8 +19,8 @@ export default async function ResetPasswordPage({
     return (
       <div className="max-w-sm mx-auto mt-24 card text-center space-y-3">
         <p className="text-4xl">⏰</p>
-        <h1 className="text-xl font-bold">Lien expiré ou invalide</h1>
-        <p className="text-sm text-gray-600">
+        <h1 className="font-serif text-2xl font-medium text-brand-600">Lien expiré ou invalide</h1>
+        <p className="text-sm text-stone2-600">
           Ce lien n'est plus valide. Faites une nouvelle demande.
         </p>
         <a href="/forgot-password" className="btn-primary inline-block">
@@ -31,19 +31,20 @@ export default async function ResetPasswordPage({
   }
 
   return (
-    <div className="max-w-sm mx-auto mt-24 space-y-6">
+    <div className="max-w-sm mx-auto mt-24 space-y-6 px-4">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">
+        <p className="section-title text-center">Studio Boutique</p>
+        <h1 className="font-serif text-3xl font-medium text-brand-600 mt-1">
           Nouveau mot de passe
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-stone2-500 mt-2">
           Bonjour {record.user.firstName}, choisissez un nouveau mot de passe.
         </p>
       </div>
       <form action={resetPasswordAction} className="card space-y-4">
         <input type="hidden" name="token" value={token} />
         {searchParams.error && (
-          <p className="text-sm text-red-600">{searchParams.error}</p>
+          <p className="text-sm text-red-700">{searchParams.error}</p>
         )}
         <div>
           <label className="label">Nouveau mot de passe</label>

@@ -13,25 +13,31 @@ export default async function ProfilePage({
   if (!user) redirect("/login");
 
   return (
-    <div className="max-w-lg mx-auto space-y-8">
-      <Link href="/account" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-6">
+    <div className="max-w-lg mx-auto space-y-8 px-4">
+      <Link
+        href="/account"
+        className="text-sm text-stone2-500 hover:text-brand-600 flex items-center gap-1"
+      >
         ← Mon compte
       </Link>
-      <h1 className="text-2xl font-bold">Mon profil</h1>
+      <div>
+        <p className="section-title">Mon espace</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Mon profil</h1>
+      </div>
 
       {searchParams.success && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded p-3">
+        <p className="text-sm text-green-700 bg-green-50 border border-green-200 p-3">
           {searchParams.success}
         </p>
       )}
       {searchParams.error && (
-        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
+        <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-3">
           {searchParams.error}
         </p>
       )}
 
       <form action={updateProfileAction} className="card space-y-4">
-        <h2 className="font-semibold text-lg">Informations personnelles</h2>
+        <h2 className="font-semibold text-brand-600">Informations personnelles</h2>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Prénom</label>
@@ -48,13 +54,19 @@ export default async function ProfilePage({
         </div>
         <div>
           <label className="label">Téléphone</label>
-          <input name="phone" type="tel" defaultValue={user.phone ?? ""} className="input" placeholder="+33 6 00 00 00 00" />
+          <input
+            name="phone"
+            type="tel"
+            defaultValue={user.phone ?? ""}
+            className="input"
+            placeholder="+33 6 00 00 00 00"
+          />
         </div>
         <SubmitButton label="Enregistrer" pendingLabel="Enregistrement..." />
       </form>
 
       <form action={changePasswordAction} className="card space-y-4">
-        <h2 className="font-semibold text-lg">Changer le mot de passe</h2>
+        <h2 className="font-semibold text-brand-600">Changer le mot de passe</h2>
         <div>
           <label className="label">Mot de passe actuel</label>
           <input name="current" type="password" required className="input" />

@@ -30,7 +30,7 @@ export default function DeleteForm({
         </form>
         <button
           onClick={() => setConfirming(false)}
-          className="text-gray-500 hover:underline text-xs"
+          className="text-stone2-500 hover:underline text-xs"
         >
           Annuler
         </button>

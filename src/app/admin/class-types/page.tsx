@@ -12,7 +12,10 @@ export default async function ClassTypesPage({
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />
-      <h1 className="text-2xl font-bold">Types de cours</h1>
+      <div>
+        <p className="section-title">Administration</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Types de cours</h1>
+      </div>
       <form action={createClassTypeAction} className="card grid gap-3 md:grid-cols-5">
         <input name="name" placeholder="Nom" required className="input" />
         <input
@@ -46,19 +49,19 @@ export default async function ClassTypesPage({
       </form>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-gray-500">
+          <thead className="text-left text-[10px] uppercase tracking-[0.18em] text-stone2-500 border-b border-stone2-100">
             <tr>
-              <th className="py-2">Nom</th>
+              <th className="pb-2">Nom</th>
               <th>Durée</th>
               <th>Coût</th>
               <th>Couleur</th>
               <th></th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-stone2-100">
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-sm text-gray-400">
+                <td colSpan={5} className="py-8 text-center text-sm text-stone2-400">
                   Aucun type de cours
                 </td>
               </tr>
@@ -66,11 +69,11 @@ export default async function ClassTypesPage({
             {items.map((c) => (
               <tr key={c.id}>
                 <td className="py-2 font-medium">{c.name}</td>
-                <td>{c.durationMin} min</td>
-                <td>{c.creditCost}</td>
+                <td className="text-stone2-600">{c.durationMin} min</td>
+                <td className="text-stone2-600">{c.creditCost}</td>
                 <td>
                   <span
-                    className="inline-block w-5 h-5 rounded"
+                    className="inline-block w-5 h-5"
                     style={{ background: c.color }}
                   />
                 </td>

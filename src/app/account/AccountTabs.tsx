@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { cancelAction } from "../schedule/actions";
 import { freezeSubscriptionAction as freezeAction, unfreezeSubscriptionAction as unfreezeAction } from "./actions";
 import { formatPrice } from "@/lib/utils";
@@ -125,6 +126,7 @@ export default function AccountTabs({
 // ─── Upcoming tab ─────────────────────────────────────────────────────────────
 
 function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -134,6 +136,7 @@ function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
       await cancelAction(id);
       setCancelingId(null);
       setMessage("Réservation annulée");
+      router.refresh();
       setTimeout(() => setMessage(null), 3000);
     });
   };
@@ -302,10 +305,11 @@ function PastTab({ bookings }: { bookings: PastBooking[] }) {
 // ─── Subscriptions tab ───────────────────────────────────────────────────────
 
 function SubsTab({ subs }: { subs: Sub[] }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const doFreeze = (id: string) => startTransition(async () => { await freezeAction(id); });
-  const doUnfreeze = (id: string) => startTransition(async () => { await unfreezeAction(id); });
+  const doFreeze = (id: string) => startTransition(async () => { await freezeAction(id); router.refresh(); });
+  const doUnfreeze = (id: string) => startTransition(async () => { await unfreezeAction(id); router.refresh(); });
 
   if (subs.length === 0)
     return (

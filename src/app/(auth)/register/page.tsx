@@ -16,12 +16,12 @@ function SubmitButton() {
 export default function RegisterPage() {
   const [state, action] = useFormState(registerAction, null);
   return (
-    <div className="flex flex-col items-center justify-center py-16">
+    <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <p className="section-title text-center">Studio Boutique</p>
-          <h1 className="text-3xl font-bold text-gray-900 mt-1">Créer un compte</h1>
-          <p className="text-sm text-gray-500 mt-2">
+          <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Créer un compte</h1>
+          <p className="text-sm text-stone2-500 mt-2">
             Rejoignez la communauté en 30 secondes
           </p>
         </div>
@@ -42,7 +42,10 @@ export default function RegisterPage() {
             <input type="email" name="email" required className="input" />
           </div>
           <div>
-            <label className="label">Téléphone <span className="normal-case font-normal text-gray-400">(optionnel)</span></label>
+            <label className="label">
+              Téléphone{" "}
+              <span className="normal-case font-normal text-stone2-400">(optionnel)</span>
+            </label>
             <input type="tel" name="phone" className="input" placeholder="+33 6 00 00 00 00" />
           </div>
           <div>
@@ -54,19 +57,19 @@ export default function RegisterPage() {
               minLength={8}
               className="input"
             />
-            <p className="text-xs text-gray-400 mt-1.5">Minimum 8 caractères</p>
+            <p className="text-xs text-stone2-400 mt-1.5">Minimum 8 caractères</p>
           </div>
           {state?.error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-3">
               {state.error}
             </p>
           )}
           <SubmitButton />
         </form>
 
-        <p className="text-sm text-gray-500 mt-6 text-center">
+        <p className="text-sm text-stone2-500 mt-6 text-center">
           Déjà inscrit ?{" "}
-          <Link href="/login" className="text-brand-600 font-medium hover:text-brand-700">
+          <Link href="/login" className="text-brand-600 font-medium hover:text-accent-600">
             Connectez-vous
           </Link>
         </p>

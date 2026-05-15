@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import AdminSidebar from "./AdminSidebar";
 
 export default async function AdminLayout({
   children,
@@ -53,27 +53,8 @@ export default async function AdminLayout({
   ];
 
   return (
-    <div className="grid md:grid-cols-[220px_1fr] gap-8">
-      <aside className="space-y-5">
-        {groups.map((g) => (
-          <div key={g.title}>
-            <h2 className="text-[10px] uppercase tracking-[0.22em] text-stone2-400 px-3 py-2">
-              {g.title}
-            </h2>
-            <div className="space-y-0.5">
-              {g.items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="block px-3 py-2 text-sm text-stone2-700 hover:bg-cream-100 hover:text-brand-600 transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
-      </aside>
+    <div className="md:grid md:grid-cols-[220px_1fr] md:gap-8">
+      <AdminSidebar groups={groups} />
       <div className="min-w-0">{children}</div>
     </div>
   );

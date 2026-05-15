@@ -14,8 +14,9 @@ export default async function RecurringPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Créer des séances récurrentes</h1>
-        <p className="text-sm text-gray-500">
+        <p className="section-title">Administration</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-1">Cours récurrents</h1>
+        <p className="text-sm text-stone2-500 mt-1">
           Génère automatiquement toutes les séances pour les jours sélectionnés
           entre les deux dates.
         </p>
@@ -57,9 +58,9 @@ export default async function RecurringPage() {
         </div>
         <div>
           <label className="label">Jours de la semaine</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d, i) => {
-              const dayIdx = i === 6 ? 0 : i + 1; // map to Sunday=0..Saturday=6
+              const dayIdx = i === 6 ? 0 : i + 1;
               return (
                 <label
                   key={d}
@@ -71,7 +72,7 @@ export default async function RecurringPage() {
                     value={dayIdx}
                     className="peer hidden"
                   />
-                  <span className="px-3 py-2 rounded border border-gray-300 peer-checked:bg-brand-600 peer-checked:text-white peer-checked:border-brand-600">
+                  <span className="px-3 py-2 border border-stone2-300 text-stone2-600 peer-checked:bg-brand-600 peer-checked:text-cream-50 peer-checked:border-brand-600 transition-colors">
                     {d}
                   </span>
                 </label>

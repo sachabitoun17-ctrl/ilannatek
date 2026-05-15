@@ -31,25 +31,26 @@ export default async function SubscriptionsPage() {
       })
     : null;
 
-  // Mark the most expensive plan as featured
   const maxPrice = plans.length > 0 ? Math.max(...plans.map((p) => p.priceCents)) : 0;
 
   return (
     <div className="space-y-10">
       <div>
         <p className="section-title">Studio Boutique</p>
-        <h1 className="text-3xl font-bold text-gray-900">Abonnements</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 mt-1">
+          Abonnements
+        </h1>
+        <p className="text-sm text-stone2-500 mt-2">
           Profitez d&apos;un nombre de crédits récurrent à tarif préférentiel
         </p>
       </div>
 
       {activeSub && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-5">
-          <p className="text-sm font-medium text-green-900">
+        <div className="border border-accent-200 bg-accent-50 px-5 py-4">
+          <p className="text-sm font-medium text-brand-600">
             Abonnement actif : {activeSub.plan.name}
           </p>
-          <p className="text-xs text-green-700 mt-1">
+          <p className="text-xs text-stone2-600 mt-1">
             Valide jusqu&apos;au {activeSub.endDate.toLocaleDateString("fr-FR")}
           </p>
         </div>
@@ -61,22 +62,22 @@ export default async function SubscriptionsPage() {
           return (
             <div
               key={p.id}
-              className={`rounded-xl border flex flex-col gap-5 p-7 ${
+              className={`border flex flex-col gap-5 p-7 ${
                 isFeatured
-                  ? "bg-brand-600 border-brand-600 text-white"
-                  : "bg-white border-gray-100"
+                  ? "bg-brand-600 border-brand-600"
+                  : "bg-white border-stone2-100"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <h3
-                  className={`text-base font-semibold ${
-                    isFeatured ? "text-white" : "text-gray-900"
+                  className={`text-base font-semibold tracking-wide ${
+                    isFeatured ? "text-cream-50" : "text-brand-600"
                   }`}
                 >
                   {p.name}
                 </h3>
                 {isFeatured && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
+                  <span className="badge bg-accent-500 text-cream-50 text-[9px]">
                     Populaire
                   </span>
                 )}
@@ -85,7 +86,7 @@ export default async function SubscriptionsPage() {
               {p.description && (
                 <p
                   className={`text-sm ${
-                    isFeatured ? "text-brand-100" : "text-gray-600"
+                    isFeatured ? "text-stone2-300" : "text-stone2-600"
                   }`}
                 >
                   {p.description}
@@ -94,15 +95,15 @@ export default async function SubscriptionsPage() {
 
               <div className="flex items-baseline gap-2">
                 <span
-                  className={`text-4xl font-bold ${
-                    isFeatured ? "text-white" : "text-gray-900"
+                  className={`font-serif text-4xl font-medium ${
+                    isFeatured ? "text-cream-50" : "text-brand-600"
                   }`}
                 >
                   {formatPrice(p.priceCents)}
                 </span>
                 <span
                   className={`text-sm ${
-                    isFeatured ? "text-brand-200" : "text-gray-500"
+                    isFeatured ? "text-stone2-400" : "text-stone2-500"
                   }`}
                 >
                   / {formatInterval(p.intervalDays)}
@@ -111,7 +112,7 @@ export default async function SubscriptionsPage() {
 
               <ul
                 className={`text-sm space-y-1.5 flex-1 ${
-                  isFeatured ? "text-brand-100" : "text-gray-600"
+                  isFeatured ? "text-stone2-300" : "text-stone2-600"
                 }`}
               >
                 <li>· {p.creditsPerCycle} crédits dès l&apos;activation</li>
@@ -120,16 +121,22 @@ export default async function SubscriptionsPage() {
               </ul>
 
               {user ? (
-                <div className={isFeatured ? "[&_.btn-primary]:bg-white [&_.btn-primary]:text-brand-700 [&_.btn-primary]:hover:bg-brand-50" : ""}>
+                <div
+                  className={
+                    isFeatured
+                      ? "[&_.btn-primary]:bg-cream-50 [&_.btn-primary]:text-brand-600 [&_.btn-primary]:hover:bg-accent-200"
+                      : ""
+                  }
+                >
                   <PurchaseButton planId={p.id} cta="S'abonner" />
                 </div>
               ) : (
                 <Link
                   href="/login"
-                  className={`text-center rounded-md px-5 py-2.5 text-sm font-medium tracking-wide transition-colors ${
+                  className={`text-center px-5 py-3 text-[11px] uppercase tracking-[0.18em] transition-colors ${
                     isFeatured
-                      ? "bg-white text-brand-700 hover:bg-brand-50"
-                      : "bg-brand-600 text-white hover:bg-brand-700"
+                      ? "bg-cream-50 text-brand-600 hover:bg-accent-200"
+                      : "bg-brand-600 text-cream-50 hover:bg-brand-700"
                   }`}
                 >
                   Se connecter

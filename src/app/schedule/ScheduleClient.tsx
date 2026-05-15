@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { formatTime } from "@/lib/utils";
 import { bookAction, cancelAction } from "./actions";
 
@@ -85,6 +86,7 @@ export default function ScheduleClient({
   now: string;
 }) {
   const nowDate = new Date(now);
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; kind: "ok" | "err" } | null>(null);
   const [bookConfirm, setBookConfirm] = useState<BookConfirm | null>(null);
@@ -134,6 +136,7 @@ export default function ScheduleClient({
               : `Inscrit·e liste d'attente (position ${result.position})`,
           kind: "ok",
         });
+        router.refresh();
       } else {
         setMessage({ text: result.error, kind: "err" });
       }
@@ -150,6 +153,7 @@ export default function ScheduleClient({
           ? { text: "Réservation annulée", kind: "ok" }
           : { text: result.error ?? "Erreur", kind: "err" }
       );
+      if (result.ok) router.refresh();
       setTimeout(() => setMessage(null), 4000);
     });
   };
