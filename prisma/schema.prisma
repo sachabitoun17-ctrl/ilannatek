@@ -7,39 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// SQLite does not support native enums.
-// Values: role USER|INSTRUCTOR|ADMIN, session SCHEDULED|CANCELLED|COMPLETED,
-// booking CONFIRMED|WAITLIST|CANCELLED|ATTENDED|NO_SHOW,
-// plan CREDIT_PACK|SUBSCRIPTION, sub ACTIVE|CANCELLED|EXPIRED,
-// tx PURCHASE_PACK|PURCHASE_SUBSCRIPTION|CREDIT_USE|CREDIT_REFUND|ADMIN_ADJUST
+// SQLite does not support native enums. Validation lives in src/lib/enums.ts (Zod).
 
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
+  id              String   @id @default(cuid())
+  email           String   @unique
   passwordHash    String
   firstName       String
   lastName        String
   phone           String?
-  role            String         @default("USER")
-  creditsBalance  Int            @default(0)
+  role            String   @default("USER")
+  creditsBalance  Int      @default(0)
   instructorBio   String?
   instructorPhoto String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  emailVerifiedAt DateTime?
+  // session version: bump to invalidate all existing JWTs for this user
+  sessionVersion  Int      @default(0)
+  // Stripe references
+  stripeCustomerId String? @unique
+  // status flags
+  active          Boolean  @default(true)
+  // soft-blocked because of repeated no-shows
+  banned          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   bookings      Booking[]
   transactions  Transaction[]
   subscriptions Subscription[]
   sessions      Session[]      @relation("InstructorSessions")
+  checkIns      CheckIn[]
+  auditLogs     AuditLog[]     @relation("AuditActor")
+  loginAttempts LoginAttempt[]
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  ip        String?
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
 }
 
 model Location {
   id        String   @id @default(cuid())
   name      String
   address   String?
+  timezone  String   @default("Europe/Paris")
   createdAt DateTime @default(now())
 
-  sessions  Session[]
+  sessions Session[]
 }
 
 model ClassType {
@@ -49,44 +71,70 @@ model ClassType {
   durationMin Int      @default(60)
   creditCost  Int      @default(1)
   color       String   @default("#ec4899")
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  sessions    Session[]
+  sessions       Session[]
+  recurringRules RecurringRule[]
 }
 
-model Session {
+model RecurringRule {
   id           String   @id @default(cuid())
   classTypeId  String
   classType    ClassType @relation(fields: [classTypeId], references: [id])
   instructorId String
-  instructor   User     @relation("InstructorSessions", fields: [instructorId], references: [id])
   locationId   String
-  location     Location @relation(fields: [locationId], references: [id])
+  // bitmask 0=Sunday..6=Saturday or comma-separated days; we keep simple csv
+  daysOfWeek   String
+  startTimeMin Int       // minutes from midnight
+  capacity     Int       @default(15)
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime  @default(now())
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  classTypeId  String
+  classType    ClassType @relation(fields: [classTypeId], references: [id])
+  instructorId String
+  instructor   User      @relation("InstructorSessions", fields: [instructorId], references: [id])
+  locationId   String
+  location     Location  @relation(fields: [locationId], references: [id])
   startTime    DateTime
   endTime      DateTime
-  capacity     Int      @default(15)
-  status       String   @default("SCHEDULED")
+  capacity     Int       @default(15)
+  // override cancellation cutoff (minutes) for this session, fallback to studio settings
+  cancellationCutoffMin Int?
+  status       String    @default("SCHEDULED")
   notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  recurringRuleId String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  bookings     Booking[]
+  bookings  Booking[]
+  checkIns  CheckIn[]
 
   @@index([startTime])
-  @@index([instructorId])
+  @@index([instructorId, startTime])
+  @@index([locationId, startTime])
 }
 
 model Booking {
-  id          String   @id @default(cuid())
-  sessionId   String
-  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  status      String   @default("CONFIRMED")
-  waitlistPos Int?
-  creditsUsed Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  sessionId       String
+  session         Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  status          String   @default("CONFIRMED")
+  waitlistPos     Int?
+  creditsUsed     Int      @default(0)
+  // late cancel / no show fee in credits
+  feeApplied      Int      @default(0)
+  cancelledAt     DateTime?
+  promotedFromWaitlistAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([sessionId, userId])
   @@index([userId])
@@ -94,16 +142,34 @@ model Booking {
   @@index([sessionId, status])
 }
 
+model CheckIn {
+  id        String   @id @default(cuid())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  source    String   // QR | MANUAL | SELF
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, userId])
+}
+
 model Plan {
   id              String   @id @default(cuid())
   name            String
   description     String?
-  type            String
+  type            String   // CREDIT_PACK | SUBSCRIPTION
   priceCents      Int
   creditsAmount   Int?
   intervalDays    Int?
   creditsPerCycle Int?
   active          Boolean  @default(true)
+  // optional Stripe price id, set once and used by checkout
+  stripePriceId   String?  @unique
+  // only sellable to brand new accounts (first-time intro offer)
+  introOnly       Boolean  @default(false)
+  // max number of these a single user can buy
+  maxPerUser      Int?
   createdAt       DateTime @default(now())
 
   subscriptions Subscription[]
@@ -111,19 +177,54 @@ model Plan {
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  planId    String
-  plan      Plan     @relation(fields: [planId], references: [id])
-  status    String   @default("ACTIVE")
-  startDate DateTime @default(now())
-  endDate   DateTime
-  autoRenew Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  planId              String
+  plan                Plan     @relation(fields: [planId], references: [id])
+  status              String   @default("ACTIVE") // ACTIVE | CANCELLED | EXPIRED | FROZEN
+  startDate           DateTime @default(now())
+  endDate             DateTime
+  autoRenew           Boolean  @default(true)
+  // frozen subscriptions don't expire; track how much was paused
+  frozenAt            DateTime?
+  resumedAt           DateTime?
+  stripeSubscriptionId String? @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([userId, status])
+  @@index([endDate])
+}
+
+model PromoCode {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  description  String?
+  // discount type: PERCENT or FIXED_CENTS or FREE_CREDITS
+  discountType String
+  discountValue Int
+  maxUses      Int?
+  uses         Int       @default(0)
+  expiresAt    DateTime?
+  // restrict to certain plans (comma-separated ids) or null = any
+  applicablePlanIds String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  redemptions PromoRedemption[]
+}
+
+model PromoRedemption {
+  id        String   @id @default(cuid())
+  codeId    String
+  code      PromoCode @relation(fields: [codeId], references: [id])
+  userId    String
+  transactionId String?
+  appliedAmount Int    @default(0)
+  createdAt DateTime  @default(now())
+
+  @@unique([codeId, userId])
 }
 
 model Transaction {
@@ -136,7 +237,49 @@ model Transaction {
   amountCents  Int      @default(0)
   creditsDelta Int      @default(0)
   description  String?
+  // payment status: PENDING | PAID | REFUNDED | FAILED | FREE
+  paymentStatus String  @default("FREE")
+  // Stripe checkout/session/payment intent reference (idempotency key)
+  stripeRef    String?  @unique
+  // idempotency key for client-driven actions
+  idempotencyKey String? @unique
   createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action    String   // CREATE_SESSION, ADJUST_CREDITS, SET_ROLE, CANCEL_BOOKING, ...
+  entity    String?
+  entityId  String?
+  metadata  String?  // JSON
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
+
+model Settings {
+  id                    String   @id @default("singleton")
+  studioName            String   @default("Ilannatek")
+  // cancellation cutoff in minutes (members can't cancel within this window)
+  cancellationCutoffMin Int      @default(120)
+  // late-cancel fee in credits (deducted if member cancels after cutoff)
+  lateCancelFee         Int      @default(1)
+  // no-show fee (admin can mark NO_SHOW and apply this)
+  noShowFee             Int      @default(2)
+  // bookings open this many days in advance
+  bookingWindowDays     Int      @default(14)
+  // welcome credits granted on signup
+  welcomeCredits        Int      @default(0)
+  // email sender
+  emailFrom             String   @default("noreply@ilannatek.fr")
+  // Stripe public key (also exposed at runtime to client)
+  stripePublishableKey  String?
+  updatedAt             DateTime @updatedAt @default(now())
 }

@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
@@ -17,16 +17,14 @@ export type SessionPayload = {
   userId: string;
   email: string;
   role: string;
+  v: number; // session version
 };
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-export async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
@@ -38,9 +36,7 @@ export async function createSession(payload: SessionPayload): Promise<string> {
     .sign(SECRET);
 }
 
-export async function verifySession(
-  token: string
-): Promise<SessionPayload | null> {
+export async function verifyJwt(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, SECRET);
     return payload as unknown as SessionPayload;
@@ -63,17 +59,17 @@ export async function clearSessionCookie() {
   cookies().delete(COOKIE_NAME);
 }
 
-export async function getSession(): Promise<SessionPayload | null> {
+/**
+ * Reads JWT from cookie and validates it against the DB session version.
+ * This lets us invalidate all of a user's sessions by bumping User.sessionVersion.
+ */
+export async function getCurrentUser() {
   const token = cookies().get(COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifySession(token);
-}
-
-export async function getCurrentUser() {
-  const session = await getSession();
-  if (!session) return null;
+  const payload = await verifyJwt(token);
+  if (!payload) return null;
   const user = await db.user.findUnique({
-    where: { id: session.userId },
+    where: { id: payload.userId },
     select: {
       id: true,
       email: true,
@@ -81,8 +77,14 @@ export async function getCurrentUser() {
       lastName: true,
       role: true,
       creditsBalance: true,
+      sessionVersion: true,
+      active: true,
+      banned: true,
     },
   });
+  if (!user) return null;
+  if (!user.active || user.banned) return null;
+  if (user.sessionVersion !== payload.v) return null;
   return user;
 }
 
@@ -97,4 +99,34 @@ export async function requireAdmin() {
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/");
   return user;
+}
+
+export async function requireStaff() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role !== "ADMIN" && user.role !== "INSTRUCTOR") redirect("/");
+  return user;
+}
+
+export function getClientIp(): string | undefined {
+  try {
+    const h = headers();
+    return (
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      h.get("x-real-ip") ||
+      undefined
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Bump a user's sessionVersion to invalidate all their existing JWTs.
+ */
+export async function revokeAllSessions(userId: string) {
+  await db.user.update({
+    where: { id: userId },
+    data: { sessionVersion: { increment: 1 } },
+  });
 }
