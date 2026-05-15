@@ -54,7 +54,7 @@ export default async function PacksPage() {
                 Soit {pricePerCredit} par crédit
               </p>
               {user ? (
-                <PurchaseButton planId={p.id} kind="pack" />
+                <PurchaseButton planId={p.id} />
               ) : (
                 <Link href="/login" className="btn-primary text-center">
                   Se connecter

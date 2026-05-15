@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { addDays, endOfDay, formatDate, startOfDay } from "@/lib/utils";
+import { addDays, endOfDay, formatDate, formatTime, startOfDay } from "@/lib/utils";
 import ScheduleClient from "./ScheduleClient";
 
-type SearchParams = { date?: string; location?: string };
+type SearchParams = { date?: string; location?: string; view?: string };
 
 export default async function SchedulePage({
   searchParams,
@@ -12,12 +12,13 @@ export default async function SchedulePage({
   searchParams: SearchParams;
 }) {
   const user = await getCurrentUser();
-  const baseDate = searchParams.date
-    ? new Date(searchParams.date)
-    : new Date();
+  const view = searchParams.view === "week" ? "week" : "day";
+
+  const baseDate = searchParams.date ? new Date(searchParams.date) : new Date();
   if (Number.isNaN(baseDate.getTime())) baseDate.setTime(Date.now());
 
-  const days = Array.from({ length: 7 }).map((_, i) =>
+  const numDays = view === "week" ? 7 : 1;
+  const days = Array.from({ length: numDays }).map((_, i) =>
     startOfDay(addDays(baseDate, i))
   );
 
@@ -26,7 +27,7 @@ export default async function SchedulePage({
 
   const sessions = await db.session.findMany({
     where: {
-      startTime: { gte: days[0], lte: endOfDay(days[6]) },
+      startTime: { gte: days[0], lte: endOfDay(days[days.length - 1]) },
       status: "SCHEDULED",
       ...(locationFilter ? { locationId: locationFilter } : {}),
     },
@@ -59,10 +60,7 @@ export default async function SchedulePage({
 
   const grouped = days.map((d) => ({
     date: d,
-    sessions: sessions.filter(
-      (s) =>
-        s.startTime.toDateString() === d.toDateString()
-    ),
+    sessions: sessions.filter((s) => s.startTime.toDateString() === d.toDateString()),
   }));
 
   const enriched = grouped.map((g) => ({
@@ -91,25 +89,62 @@ export default async function SchedulePage({
     }),
   }));
 
-  const prevDate = addDays(baseDate, -7).toISOString().slice(0, 10);
-  const nextDate = addDays(baseDate, 7).toISOString().slice(0, 10);
+  const prevDate = addDays(baseDate, view === "week" ? -7 : -1)
+    .toISOString()
+    .slice(0, 10);
+  const nextDate = addDays(baseDate, view === "week" ? 7 : 1)
+    .toISOString()
+    .slice(0, 10);
+
+  // Build the day strip for quick navigation (7 days centered on baseDate)
+  const stripStart = startOfDay(addDays(baseDate, -3));
+  const strip = Array.from({ length: 7 }).map((_, i) => {
+    const d = addDays(stripStart, i);
+    return {
+      iso: d.toISOString().slice(0, 10),
+      label: d.toLocaleDateString("fr-FR", { weekday: "short" }),
+      day: d.getDate(),
+      isActive: d.toDateString() === baseDate.toDateString(),
+      isToday: d.toDateString() === new Date().toDateString(),
+    };
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Planning</h1>
-          <p className="text-sm text-gray-500">
-            Semaine du {formatDate(days[0])}
+          <p className="text-sm text-gray-500 capitalize">
+            {view === "week"
+              ? `Semaine du ${formatDate(days[0])}`
+              : formatDate(days[0])}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <form className="flex items-center gap-2">
-            <select
-              name="location"
-              defaultValue={locationFilter ?? ""}
-              className="input"
+          <div className="inline-flex rounded-md border border-gray-300 p-0.5 bg-white">
+            <Link
+              href={`/schedule?view=day${
+                searchParams.date ? `&date=${searchParams.date}` : ""
+              }${locationFilter ? `&location=${locationFilter}` : ""}`}
+              className={`px-3 py-1 rounded text-xs ${
+                view === "day" ? "bg-brand-600 text-white" : "text-gray-600"
+              }`}
             >
+              Jour
+            </Link>
+            <Link
+              href={`/schedule?view=week${
+                searchParams.date ? `&date=${searchParams.date}` : ""
+              }${locationFilter ? `&location=${locationFilter}` : ""}`}
+              className={`px-3 py-1 rounded text-xs ${
+                view === "week" ? "bg-brand-600 text-white" : "text-gray-600"
+              }`}
+            >
+              Semaine
+            </Link>
+          </div>
+          <form className="flex items-center gap-2">
+            <select name="location" defaultValue={locationFilter ?? ""} className="input">
               <option value="">Tous les studios</option>
               {locations.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -118,25 +153,49 @@ export default async function SchedulePage({
               ))}
             </select>
             <input type="hidden" name="date" value={searchParams.date ?? ""} />
+            <input type="hidden" name="view" value={view} />
             <button className="btn-secondary">Filtrer</button>
           </form>
-          <Link
-            href={`/schedule?date=${prevDate}${
-              locationFilter ? `&location=${locationFilter}` : ""
-            }`}
-            className="btn-ghost"
-          >
-            ← Semaine précédente
-          </Link>
-          <Link
-            href={`/schedule?date=${nextDate}${
-              locationFilter ? `&location=${locationFilter}` : ""
-            }`}
-            className="btn-ghost"
-          >
-            Semaine suivante →
-          </Link>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 bg-white rounded-lg border border-gray-200 p-2">
+        <Link
+          href={`/schedule?view=${view}&date=${prevDate}${
+            locationFilter ? `&location=${locationFilter}` : ""
+          }`}
+          className="btn-ghost"
+        >
+          ←
+        </Link>
+        <div className="flex gap-1 overflow-x-auto">
+          {strip.map((d) => (
+            <Link
+              key={d.iso}
+              href={`/schedule?view=${view}&date=${d.iso}${
+                locationFilter ? `&location=${locationFilter}` : ""
+              }`}
+              className={`flex flex-col items-center px-3 py-2 rounded-md min-w-[64px] ${
+                d.isActive
+                  ? "bg-brand-600 text-white"
+                  : d.isToday
+                  ? "bg-brand-50 text-brand-700"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <span className="text-xs uppercase">{d.label}</span>
+              <span className="text-lg font-semibold">{d.day}</span>
+            </Link>
+          ))}
+        </div>
+        <Link
+          href={`/schedule?view=${view}&date=${nextDate}${
+            locationFilter ? `&location=${locationFilter}` : ""
+          }`}
+          className="btn-ghost"
+        >
+          →
+        </Link>
       </div>
 
       {!user && (
@@ -158,6 +217,7 @@ export default async function SchedulePage({
         days={enriched}
         userCredits={user?.creditsBalance ?? null}
         isLoggedIn={!!user}
+        view={view}
       />
     </div>
   );

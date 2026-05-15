@@ -1,33 +1,54 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { purchasePackAction, purchaseSubscriptionAction } from "./actions";
+import { checkoutPlanAction } from "./actions";
 
 export default function PurchaseButton({
   planId,
-  kind,
+  cta = "Acheter",
 }: {
   planId: string;
-  kind: "pack" | "subscription";
+  cta?: string;
 }) {
   const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const handle = () => {
-    const action = kind === "pack" ? purchasePackAction : purchaseSubscriptionAction;
-    startTransition(async () => {
-      const result = await action(planId);
-      setMsg(result.ok ? "Achat effectué ✓" : result.error);
-      setTimeout(() => setMsg(null), 4000);
-    });
-  };
+  const [promo, setPromo] = useState("");
+  const [showPromo, setShowPromo] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-col gap-2">
-      <button onClick={handle} disabled={pending} className="btn-primary">
-        {pending ? "Achat..." : "Acheter (paiement simulé)"}
+    <form
+      action={(fd) => {
+        setError(null);
+        startTransition(async () => {
+          const result = await checkoutPlanAction(fd);
+          if (result && !result.ok) {
+            setError(result.error);
+          }
+        });
+      }}
+      className="flex flex-col gap-2"
+    >
+      <input type="hidden" name="planId" value={planId} />
+      {showPromo && (
+        <input
+          name="promoCode"
+          value={promo}
+          onChange={(e) => setPromo(e.target.value)}
+          placeholder="Code promo"
+          className="input"
+        />
+      )}
+      <button type="submit" disabled={pending} className="btn-primary">
+        {pending ? "Redirection..." : cta}
       </button>
-      {msg && <p className="text-xs text-gray-600">{msg}</p>}
-    </div>
+      <button
+        type="button"
+        onClick={() => setShowPromo((v) => !v)}
+        className="text-xs text-gray-500 hover:text-brand-600"
+      >
+        {showPromo ? "Masquer le code promo" : "J'ai un code promo"}
+      </button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </form>
   );
 }

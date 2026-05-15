@@ -155,6 +155,36 @@ async function main() {
     if (!existing) await db.plan.create({ data: p });
   }
 
+  await db.settings.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: {
+      id: "singleton",
+      studioName: "Ilannatek",
+      cancellationCutoffMin: 120,
+      lateCancelFee: 1,
+      noShowFee: 2,
+      bookingWindowDays: 14,
+      welcomeCredits: 1,
+      emailFrom: "noreply@ilannatek.fr",
+    },
+  });
+
+  const existingPromo = await db.promoCode.findUnique({
+    where: { code: "BIENVENUE10" },
+  });
+  if (!existingPromo) {
+    await db.promoCode.create({
+      data: {
+        code: "BIENVENUE10",
+        description: "10% sur le premier achat",
+        discountType: "PERCENT",
+        discountValue: 10,
+        active: true,
+      },
+    });
+  }
+
   await db.session.deleteMany({});
 
   const now = new Date();

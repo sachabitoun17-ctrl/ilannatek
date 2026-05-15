@@ -66,7 +66,7 @@ export default async function SubscriptionsPage() {
                 <li>• Annulable à tout moment</li>
               </ul>
               {user ? (
-                <PurchaseButton planId={p.id} kind="subscription" />
+                <PurchaseButton planId={p.id} cta="S'abonner" />
               ) : (
                 <Link href="/login" className="btn-primary text-center">
                   Se connecter

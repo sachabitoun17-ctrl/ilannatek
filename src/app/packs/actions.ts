@@ -1,83 +1,48 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { z } from "zod";
+import { requireUser } from "@/lib/auth";
+import { LIMITS, rateLimit } from "@/lib/rate-limit";
+import { startCheckout } from "@/lib/checkout";
 
-export async function purchasePackAction(planId: string) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+const schema = z.object({
+  planId: z.string().min(1),
+  promoCode: z.string().max(40).optional(),
+});
 
-  const plan = await db.plan.findUnique({ where: { id: planId } });
-  if (!plan || plan.type !== "CREDIT_PACK" || !plan.active) {
-    return { ok: false as const, error: "Pack indisponible" };
-  }
-
-  await db.$transaction([
-    db.user.update({
-      where: { id: user.id },
-      data: { creditsBalance: { increment: plan.creditsAmount ?? 0 } },
-    }),
-    db.transaction.create({
-      data: {
-        userId: user.id,
-        planId: plan.id,
-        type: "PURCHASE_PACK",
-        amountCents: plan.priceCents,
-        creditsDelta: plan.creditsAmount ?? 0,
-        description: `Achat ${plan.name}`,
-      },
-    }),
-  ]);
-
-  revalidatePath("/account");
-  revalidatePath("/packs");
-  return { ok: true as const, credits: plan.creditsAmount };
+function siteUrl() {
+  const h = headers();
+  const host = h.get("host");
+  const proto =
+    h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  return process.env.NEXT_PUBLIC_SITE_URL ?? `${proto}://${host}`;
 }
 
-export async function purchaseSubscriptionAction(planId: string) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  const plan = await db.plan.findUnique({ where: { id: planId } });
-  if (!plan || plan.type !== "SUBSCRIPTION" || !plan.active) {
-    return { ok: false as const, error: "Abonnement indisponible" };
+export async function checkoutPlanAction(formData: FormData) {
+  const user = await requireUser();
+  const rl = rateLimit(`checkout:${user.id}`, LIMITS.CHECKOUT_PER_USER.max, LIMITS.CHECKOUT_PER_USER.windowMs);
+  if (!rl.allowed) {
+    return { ok: false as const, error: "Trop de tentatives. Réessayez dans un instant." };
   }
+  const parsed = schema.safeParse({
+    planId: formData.get("planId"),
+    promoCode: formData.get("promoCode") || undefined,
+  });
+  if (!parsed.success) return { ok: false as const, error: "Données invalides" };
 
-  const start = new Date();
-  const end = new Date();
-  end.setDate(end.getDate() + (plan.intervalDays ?? 30));
-
-  await db.$transaction([
-    db.subscription.create({
-      data: {
-        userId: user.id,
-        planId: plan.id,
-        startDate: start,
-        endDate: end,
-        status: "ACTIVE",
-      },
-    }),
-    db.user.update({
-      where: { id: user.id },
-      data: {
-        creditsBalance: { increment: plan.creditsPerCycle ?? 0 },
-      },
-    }),
-    db.transaction.create({
-      data: {
-        userId: user.id,
-        planId: plan.id,
-        type: "PURCHASE_SUBSCRIPTION",
-        amountCents: plan.priceCents,
-        creditsDelta: plan.creditsPerCycle ?? 0,
-        description: `Abonnement ${plan.name}`,
-      },
-    }),
-  ]);
+  const base = siteUrl();
+  const result = await startCheckout({
+    userId: user.id,
+    planId: parsed.data.planId,
+    promoCode: parsed.data.promoCode,
+    successUrl: `${base}/checkout/success?plan=${parsed.data.planId}`,
+    cancelUrl: `${base}/checkout/cancel`,
+  });
+  if (!result.ok) return { ok: false as const, error: result.error };
 
   revalidatePath("/account");
-  revalidatePath("/subscriptions");
-  return { ok: true as const };
+  redirect(result.redirectUrl);
 }

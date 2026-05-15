@@ -18,13 +18,18 @@ export default async function AdminLayout({
         </h2>
         {[
           { href: "/admin", label: "Tableau de bord" },
+          { href: "/admin/reports", label: "Reporting" },
           { href: "/admin/sessions", label: "Cours" },
+          { href: "/admin/recurring", label: "Cours récurrents" },
           { href: "/admin/class-types", label: "Types de cours" },
           { href: "/admin/instructors", label: "Instructeurs" },
           { href: "/admin/locations", label: "Studios" },
           { href: "/admin/plans", label: "Plans & packs" },
+          { href: "/admin/promos", label: "Codes promo" },
           { href: "/admin/users", label: "Membres" },
           { href: "/admin/bookings", label: "Réservations" },
+          { href: "/admin/audit", label: "Journal d'audit" },
+          { href: "/admin/settings", label: "Paramètres" },
         ].map((item) => (
           <Link
             key={item.href}

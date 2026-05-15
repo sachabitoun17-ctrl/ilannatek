@@ -31,6 +31,11 @@ export default function Navbar({ user }: Props) {
               <Link href="/subscriptions" className="hover:text-brand-600">
                 Abonnements
               </Link>
+              {user?.role === "INSTRUCTOR" && (
+                <Link href="/instructor" className="hover:text-brand-600 text-brand-700">
+                  Espace pro
+                </Link>
+              )}
               {user?.role === "ADMIN" && (
                 <Link href="/admin" className="hover:text-brand-600 text-brand-700">
                   Admin
