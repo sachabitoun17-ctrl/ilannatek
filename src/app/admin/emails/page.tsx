@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { emailTemplates } from "@/lib/email";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
