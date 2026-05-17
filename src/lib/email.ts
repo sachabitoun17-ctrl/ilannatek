@@ -243,6 +243,30 @@ export const emailTemplates = {
     ),
   }),
 
+  instructorNewBooking: (args: {
+    instructorFirstName: string;
+    memberFirstName: string;
+    memberLastName: string;
+    className: string;
+    startTime: Date;
+    location: string;
+    confirmedCount: number;
+    capacity: number;
+  }) => ({
+    subject: `Nouvelle inscription — ${args.className}`,
+    html: wrap(
+      `Nouvelle inscription`,
+      `<p>Bonjour ${args.instructorFirstName},</p>
+       <p><strong>${args.memberFirstName} ${args.memberLastName}</strong> vient de s'inscrire à votre cours.</p>
+       <div style="margin:20px 0">
+         <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
+         <div class="detail-row"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
+         <div class="detail-row" style="border:none"><span class="detail-label">Inscrits</span><strong>${args.confirmedCount} / ${args.capacity}</strong></div>
+       </div>
+       <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/instructor">Voir mes cours →</a></p>`
+    ),
+  }),
+
   subscriptionCancelled: (args: { firstName: string; planName: string }) => ({
     subject: `Abonnement annulé — ${args.planName}`,
     html: wrap(

@@ -26,40 +26,64 @@ export default async function CheckInPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Check-in</h2>
-        <p className="text-sm text-gray-500">
-          Cours dans la fenêtre ±1h. Cliquez sur un cours pour pointer les
-          arrivées.
+        <p className="section-title">Espace pro</p>
+        <h1 className="font-serif text-4xl font-medium text-brand-600 mt-0.5">Check-in</h1>
+        <p className="text-sm text-stone2-500 mt-1">
+          Cours dans la fenêtre ±1h. Cliquez sur un cours pour pointer les présences.
         </p>
       </div>
+
       {sessions.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">
-          Aucun cours dans cette fenêtre horaire.
-        </p>
+        <div className="card text-center py-12">
+          <p className="font-serif text-2xl text-stone2-400">Aucun cours dans cette fenêtre</p>
+          <p className="text-sm text-stone2-500 mt-2">
+            Les cours apparaissent entre 1h avant et 1h après leur heure de début.
+          </p>
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {sessions.map((s) => {
             const total = s.bookings.length;
             const attended = s.bookings.filter((b) => b.status === "ATTENDED").length;
+            const pct = total > 0 ? Math.round((attended / total) * 100) : 0;
+            const isNow = now >= s.startTime && now <= s.endTime;
+
             return (
               <Link
                 key={s.id}
                 href={`/instructor/sessions/${s.id}`}
-                className="card flex items-center justify-between hover:border-brand-400"
+                className="bg-white border border-stone2-200 hover:border-brand-600 transition-colors flex gap-0 overflow-hidden"
               >
-                <div>
-                  <p className="font-semibold">{s.classType.name}</p>
-                  <p className="text-sm text-gray-600">
-                    {formatTime(s.startTime)} · {s.location.name}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-brand-600">
-                    {attended}/{total}
-                  </p>
-                  <p className="text-xs text-gray-500">pointés</p>
+                <div
+                  className="w-1 shrink-0"
+                  style={{ backgroundColor: s.classType.color }}
+                />
+                <div className="flex flex-1 flex-wrap items-center justify-between gap-4 p-5">
+                  <div>
+                    {isNow && (
+                      <span className="inline-block text-[9px] uppercase tracking-widest bg-brand-600 text-cream-50 px-2 py-0.5 mb-2">
+                        En cours
+                      </span>
+                    )}
+                    <p className="font-serif text-xl text-brand-600">{s.classType.name}</p>
+                    <p className="text-sm text-stone2-600 mt-0.5">
+                      {formatTime(s.startTime)} · {s.location.name}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-serif text-4xl text-brand-600 leading-none">
+                      {attended}<span className="text-stone2-400 text-2xl">/{total}</span>
+                    </p>
+                    <p className="text-xs text-stone2-400 mt-0.5">pointés</p>
+                    <div className="mt-2 h-1 w-20 bg-stone2-100 ml-auto">
+                      <div
+                        className="h-full bg-brand-600 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </Link>
             );

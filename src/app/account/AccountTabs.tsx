@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { cancelAction } from "../schedule/actions";
 import { freezeSubscriptionAction as freezeAction, unfreezeSubscriptionAction as unfreezeAction } from "./actions";
 import { formatPrice } from "@/lib/utils";
+import { BookingQRButton } from "@/components/BookingQRButton";
 
 type UpcomingBooking = {
   id: string;
@@ -22,6 +23,7 @@ type UpcomingBooking = {
   locationAddress: string | null;
   checkedIn: boolean;
   calLink: string;
+  sessionNotes: string | null;
 };
 
 type PastBooking = {
@@ -197,6 +199,12 @@ function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
                 <span className="text-[10px] uppercase tracking-widest text-green-700">✓ Pointé·e</span>
               )}
 
+              {b.sessionNotes && (
+                <div className="w-full mt-1 text-xs text-stone2-500 border-l-2 border-accent-300 pl-2 italic">
+                  {b.sessionNotes}
+                </div>
+              )}
+
               <div className="flex items-center gap-3">
                 {isCheckInOpen && !b.checkedIn && (
                   <Link
@@ -206,6 +214,13 @@ function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
                     S'enregistrer
                   </Link>
                 )}
+
+                <BookingQRButton
+                  sessionId={b.sessionId}
+                  className={b.classTypeName}
+                  time={new Date(b.startTime).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+                  location={b.locationName}
+                />
 
                 <a
                   href={b.calLink}

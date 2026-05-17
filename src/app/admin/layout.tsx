@@ -46,7 +46,8 @@ export default async function AdminLayout({
     {
       title: "Configuration",
       items: [
-        { href: "/admin/emails", label: "Emails" },
+        { href: "/admin/emails", label: "Emails transactionnels" },
+        { href: "/admin/emails/broadcast", label: "Broadcast membres" },
         { href: "/admin/settings", label: "Paramètres" },
       ],
     },

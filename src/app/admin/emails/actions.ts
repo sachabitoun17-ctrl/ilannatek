@@ -66,6 +66,17 @@ function sampleFor(key: TemplateKey, firstName: string) {
         planName: "Mensuel illimité",
         endDate: new Date(Date.now() + 30 * 86400000),
       });
+    case "instructorNewBooking":
+      return emailTemplates.instructorNewBooking({
+        instructorFirstName: firstName,
+        memberFirstName: "Marie",
+        memberLastName: "Dupont",
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 86400000),
+        location: "Studio Paris 11ème",
+        confirmedCount: 8,
+        capacity: 12,
+      });
     case "noShowFee":
       return emailTemplates.noShowFee({ firstName, className: "Yoga Flow", fee: 1, newBalance: 4 });
     case "subscriptionExpiringSoon":

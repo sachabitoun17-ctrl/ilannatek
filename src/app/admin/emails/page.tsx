@@ -59,6 +59,11 @@ const TEMPLATE_META: Record<
     description: "Confirmation de réactivation de l'abonnement.",
     trigger: "Action unfreeze depuis /account",
   },
+  instructorNewBooking: {
+    label: "Notif instructeur (réservation)",
+    description: "Envoyé à l'instructeur à chaque nouvelle inscription confirmée.",
+    trigger: "Réservation confirmée (CONFIRMED)",
+  },
   noShowFee: {
     label: "Frais d'absence",
     description: "Frais débités quand un membre ne se présente pas.",
@@ -145,6 +150,17 @@ function previewFor(key: TemplateKey, firstName: string) {
         firstName,
         planName: "Mensuel illimité",
         endDate: new Date(Date.now() + 30 * 86400000),
+      });
+    case "instructorNewBooking":
+      return emailTemplates.instructorNewBooking({
+        instructorFirstName: firstName,
+        memberFirstName: "Marie",
+        memberLastName: "Dupont",
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 86400000),
+        location: "Studio Paris 11ème",
+        confirmedCount: 8,
+        capacity: 12,
       });
     case "noShowFee":
       return emailTemplates.noShowFee({

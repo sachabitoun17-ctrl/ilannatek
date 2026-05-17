@@ -179,6 +179,7 @@ export default async function AccountPage() {
           locationName: b.session.location.name,
           locationAddress: b.session.location.address,
           checkedIn: b.session.checkIns.length > 0,
+          sessionNotes: b.session.notes ?? null,
           calLink: googleCalLink({
             classTypeName: b.session.classType.name,
             startTime: b.session.startTime,

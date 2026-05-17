@@ -115,8 +115,13 @@ export async function bookSession(
         startTime: session.startTime,
         location: session.location.name,
         instructor: `${session.instructor.firstName} ${session.instructor.lastName}`,
+        instructorFirstName: session.instructor.firstName,
+        instructorEmail: session.instructor.email,
         userFirstName: user.firstName,
+        userLastName: user.lastName,
         userEmail: user.email,
+        confirmedCount: confirmedCount + (isWaitlist ? 0 : 1),
+        capacity: session.capacity,
       },
     };
   });
@@ -142,6 +147,21 @@ export async function bookSession(
           instructor: s.instructor,
         }),
       });
+      if (s.instructorEmail) {
+        void sendEmail({
+          to: s.instructorEmail,
+          ...emailTemplates.instructorNewBooking({
+            instructorFirstName: s.instructorFirstName,
+            memberFirstName: s.userFirstName,
+            memberLastName: s.userLastName,
+            className: s.className,
+            startTime: s.startTime,
+            location: s.location,
+            confirmedCount: s.confirmedCount,
+            capacity: s.capacity,
+          }),
+        });
+      }
     } else {
       void sendEmail({
         to: s.userEmail,
