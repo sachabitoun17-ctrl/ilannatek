@@ -59,6 +59,31 @@ const TEMPLATE_META: Record<
     description: "Confirmation de réactivation de l'abonnement.",
     trigger: "Action unfreeze depuis /account",
   },
+  noShowFee: {
+    label: "Frais d'absence",
+    description: "Frais débités quand un membre ne se présente pas.",
+    trigger: "Marquage NO_SHOW par l'instructeur",
+  },
+  subscriptionExpiringSoon: {
+    label: "Expiration proche",
+    description: "Avertissement 3 jours avant la fin d'un abonnement sans renouvellement auto.",
+    trigger: "Cron abonnements (J-3)",
+  },
+  subscriptionCancelled: {
+    label: "Abonnement annulé",
+    description: "Notification quand Stripe annule un abonnement.",
+    trigger: "Webhook Stripe customer.subscription.deleted",
+  },
+  paymentFailed: {
+    label: "Échec de paiement",
+    description: "Notification quand le renouvellement Stripe échoue.",
+    trigger: "Webhook Stripe invoice.payment_failed",
+  },
+  sessionCancelledByStudio: {
+    label: "Séance annulée (studio)",
+    description: "Notifie les inscrits quand l'admin annule une séance, avec remboursement des crédits.",
+    trigger: "Annulation ou suppression d'une séance par l'admin",
+  },
 };
 
 function previewFor(key: TemplateKey, firstName: string) {
@@ -120,6 +145,37 @@ function previewFor(key: TemplateKey, firstName: string) {
         firstName,
         planName: "Mensuel illimité",
         endDate: new Date(Date.now() + 30 * 86400000),
+      });
+    case "noShowFee":
+      return emailTemplates.noShowFee({
+        firstName,
+        className: "Yoga Flow",
+        fee: 1,
+        newBalance: 4,
+      });
+    case "subscriptionExpiringSoon":
+      return emailTemplates.subscriptionExpiringSoon({
+        firstName,
+        planName: "Mensuel illimité",
+        endDate: new Date(Date.now() + 3 * 86400000),
+        daysLeft: 3,
+      });
+    case "subscriptionCancelled":
+      return emailTemplates.subscriptionCancelled({
+        firstName,
+        planName: "Mensuel illimité",
+      });
+    case "paymentFailed":
+      return emailTemplates.paymentFailed({
+        firstName,
+        planName: "Mensuel illimité",
+      });
+    case "sessionCancelledByStudio":
+      return emailTemplates.sessionCancelledByStudio({
+        firstName,
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 86400000),
+        creditsRefunded: 1,
       });
   }
 }

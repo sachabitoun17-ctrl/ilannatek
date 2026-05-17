@@ -243,6 +243,48 @@ export const emailTemplates = {
     ),
   }),
 
+  subscriptionCancelled: (args: { firstName: string; planName: string }) => ({
+    subject: `Abonnement annulé — ${args.planName}`,
+    html: wrap(
+      `Abonnement annulé`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Votre abonnement <strong>${args.planName}</strong> a été annulé. Vos crédits restants sont conservés.</p>
+       <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/subscriptions">Voir nos abonnements →</a></p>`
+    ),
+  }),
+
+  paymentFailed: (args: { firstName: string; planName: string }) => ({
+    subject: `Échec du paiement — ${args.planName}`,
+    html: wrap(
+      `Échec du paiement`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Le renouvellement de votre abonnement <strong>${args.planName}</strong> n'a pas pu être débité.</p>
+       <div class="highlight">Votre abonnement a été suspendu. Mettez à jour votre moyen de paiement pour continuer à profiter du studio.</div>
+       <p style="margin-top:24px"><a class="btn btn-accent" href="${siteUrl()}/subscriptions">Mettre à jour mon paiement →</a></p>`
+    ),
+  }),
+
+  sessionCancelledByStudio: (args: {
+    firstName: string;
+    className: string;
+    startTime: Date;
+    creditsRefunded: number;
+  }) => ({
+    subject: `Séance annulée — ${args.className}`,
+    html: wrap(
+      `Séance annulée`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Nous avons dû annuler la séance suivante :</p>
+       <div style="margin:20px 0">
+         <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
+         <div class="detail-row" style="border:none"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
+       </div>
+       ${args.creditsRefunded > 0 ? `<div class="highlight">✓ ${args.creditsRefunded} crédit${args.creditsRefunded > 1 ? "s" : ""} recrédité${args.creditsRefunded > 1 ? "s" : ""} sur votre solde.</div>` : ""}
+       <p class="muted">Nous vous présentons toutes nos excuses pour la gêne occasionnée.</p>
+       <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/schedule">Voir le planning →</a></p>`
+    ),
+  }),
+
   passwordReset: (args: { firstName: string; resetUrl: string }) => ({
     subject: "Réinitialisation de votre mot de passe",
     html: wrap(

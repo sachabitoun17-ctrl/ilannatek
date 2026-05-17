@@ -66,6 +66,26 @@ function sampleFor(key: TemplateKey, firstName: string) {
         planName: "Mensuel illimité",
         endDate: new Date(Date.now() + 30 * 86400000),
       });
+    case "noShowFee":
+      return emailTemplates.noShowFee({ firstName, className: "Yoga Flow", fee: 1, newBalance: 4 });
+    case "subscriptionExpiringSoon":
+      return emailTemplates.subscriptionExpiringSoon({
+        firstName,
+        planName: "Mensuel illimité",
+        endDate: new Date(Date.now() + 3 * 86400000),
+        daysLeft: 3,
+      });
+    case "subscriptionCancelled":
+      return emailTemplates.subscriptionCancelled({ firstName, planName: "Mensuel illimité" });
+    case "paymentFailed":
+      return emailTemplates.paymentFailed({ firstName, planName: "Mensuel illimité" });
+    case "sessionCancelledByStudio":
+      return emailTemplates.sessionCancelledByStudio({
+        firstName,
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 86400000),
+        creditsRefunded: 1,
+      });
   }
 }
 

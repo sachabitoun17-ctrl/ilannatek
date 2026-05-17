@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyWebhookSignature } from "@/lib/stripe";
 import { grantPlanPurchase } from "@/lib/checkout";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,19 +68,33 @@ export async function POST(req: NextRequest) {
     case "invoice.payment_failed": {
       const inv = event.data.object as { customer?: string; subscription?: string };
       if (inv.subscription) {
-        await db.subscription.updateMany({
+        const sub = await db.subscription.findFirst({
           where: { stripeSubscriptionId: inv.subscription },
-          data: { status: "EXPIRED" },
+          include: { user: true, plan: true },
         });
+        if (sub) {
+          await db.subscription.update({ where: { id: sub.id }, data: { status: "EXPIRED" } });
+          void sendEmail({
+            to: sub.user.email,
+            ...emailTemplates.paymentFailed({ firstName: sub.user.firstName, planName: sub.plan.name }),
+          });
+        }
       }
       break;
     }
     case "customer.subscription.deleted": {
-      const sub = event.data.object as { id: string };
-      await db.subscription.updateMany({
-        where: { stripeSubscriptionId: sub.id },
-        data: { status: "CANCELLED", autoRenew: false },
+      const ev = event.data.object as { id: string };
+      const sub = await db.subscription.findFirst({
+        where: { stripeSubscriptionId: ev.id },
+        include: { user: true, plan: true },
       });
+      if (sub) {
+        await db.subscription.update({ where: { id: sub.id }, data: { status: "CANCELLED", autoRenew: false } });
+        void sendEmail({
+          to: sub.user.email,
+          ...emailTemplates.subscriptionCancelled({ firstName: sub.user.firstName, planName: sub.plan.name }),
+        });
+      }
       break;
     }
     default:
