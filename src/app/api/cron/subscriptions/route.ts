@@ -26,6 +26,28 @@ export async function GET(req: NextRequest) {
   if (!expected || key !== expected) return unauthorized();
 
   const now = new Date();
+
+  // Send expiry warning 3 days before endDate (window: 3d to 2d from now)
+  const warnFrom = new Date(now.getTime() + 2 * 86400000);
+  const warnTo = new Date(now.getTime() + 3 * 86400000);
+  const expiringSoon = await db.subscription.findMany({
+    where: { status: "ACTIVE", endDate: { gte: warnFrom, lte: warnTo }, autoRenew: false },
+    include: { plan: true, user: true },
+    take: 200,
+  });
+  for (const sub of expiringSoon) {
+    const daysLeft = Math.ceil((sub.endDate.getTime() - now.getTime()) / 86400000);
+    void sendEmail({
+      to: sub.user.email,
+      ...emailTemplates.subscriptionExpiringSoon({
+        firstName: sub.user.firstName,
+        planName: sub.plan.name,
+        endDate: sub.endDate,
+        daysLeft,
+      }),
+    });
+  }
+
   const due = await db.subscription.findMany({
     where: { status: "ACTIVE", endDate: { lte: now } },
     include: { plan: true, user: true },
@@ -87,8 +109,8 @@ export async function GET(req: NextRequest) {
 
   void audit({
     action: "CRON_SUBSCRIPTIONS",
-    metadata: { renewed, expired, considered: due.length },
+    metadata: { renewed, expired, considered: due.length, warningSent: expiringSoon.length },
   });
 
-  return NextResponse.json({ ok: true, renewed, expired, considered: due.length });
+  return NextResponse.json({ ok: true, renewed, expired, considered: due.length, warningSent: expiringSoon.length });
 }

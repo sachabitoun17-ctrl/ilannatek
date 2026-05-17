@@ -24,7 +24,6 @@ export async function bookSession(
     if (session.startTime < new Date())
       return { ok: false as const, error: "Cours déjà passé" };
 
-    // booking window guard
     const maxAhead = new Date();
     maxAhead.setDate(maxAhead.getDate() + settings.bookingWindowDays);
     if (session.startTime > maxAhead) {
@@ -65,7 +64,6 @@ export async function bookSession(
     let waitlistPos: number | undefined;
 
     if (existing) {
-      // re-booking after a previous cancellation: reuse the row (unique constraint)
       waitlistPos = isWaitlist ? waitlistCount + 1 : undefined;
       const updated = await tx.booking.update({
         where: { id: existing.id },
@@ -197,7 +195,6 @@ export async function cancelBooking(
 
     const wasConfirmed = booking.status === "CONFIRMED";
 
-    // Compute refund and fee
     let refundAmount = wasConfirmed ? booking.creditsUsed : 0;
     if (!asAdmin && isLateCancel && wasConfirmed) {
       feeApplied = Math.min(settings.lateCancelFee, refundAmount);
@@ -236,27 +233,34 @@ export async function cancelBooking(
           userId: booking.userId,
           type: "LATE_CANCEL_FEE",
           creditsDelta: 0,
-          description: `Frais d'annulation tardive (${feeApplied} crédit${feeApplied > 1 ? "s" : ""} retenu${feeApplied > 1 ? "s" : ""})`,
+          description: `Frais annulation tardive (${feeApplied} crédit${feeApplied > 1 ? "s" : ""} retenu${feeApplied > 1 ? "s" : ""})`,
           paymentStatus: "FREE",
         },
       });
     }
 
-    let promotedUser:
-      | { id: string; firstName: string; email: string; className: string; startTime: Date }
-      | null = null;
+    let promotedUser: {
+      id: string;
+      firstName: string;
+      email: string;
+      className: string;
+      startTime: Date;
+    } | null = null;
 
     if (wasConfirmed) {
-      const nextWaitlisted = await tx.booking.findFirst({
+      const cost = booking.session.classType.creditCost;
+
+      // Try each waitlisted user in order — skip those with insufficient credits
+      const waitlistedAll = await tx.booking.findMany({
         where: { sessionId: booking.sessionId, status: "WAITLIST" },
         orderBy: { waitlistPos: "asc" },
         include: { user: true, session: { include: { classType: true } } },
       });
-      if (nextWaitlisted) {
-        const cost = nextWaitlisted.session.classType.creditCost;
-        if (nextWaitlisted.user.creditsBalance >= cost) {
+
+      for (const candidate of waitlistedAll) {
+        if (candidate.user.creditsBalance >= cost) {
           await tx.booking.update({
-            where: { id: nextWaitlisted.id },
+            where: { id: candidate.id },
             data: {
               status: "CONFIRMED",
               waitlistPos: null,
@@ -265,25 +269,26 @@ export async function cancelBooking(
             },
           });
           await tx.user.update({
-            where: { id: nextWaitlisted.userId },
+            where: { id: candidate.userId },
             data: { creditsBalance: { decrement: cost } },
           });
           await tx.transaction.create({
             data: {
-              userId: nextWaitlisted.userId,
+              userId: candidate.userId,
               type: "CREDIT_USE",
               creditsDelta: -cost,
-              description: `Promotion liste d'attente ${nextWaitlisted.session.classType.name}`,
+              description: `Promotion liste d'attente ${candidate.session.classType.name}`,
               paymentStatus: "FREE",
             },
           });
           promotedUser = {
-            id: nextWaitlisted.userId,
-            firstName: nextWaitlisted.user.firstName,
-            email: nextWaitlisted.user.email,
-            className: nextWaitlisted.session.classType.name,
+            id: candidate.userId,
+            firstName: candidate.user.firstName,
+            email: candidate.user.email,
+            className: candidate.session.classType.name,
             startTime: booking.session.startTime,
           };
+          break;
         }
       }
 
@@ -308,6 +313,7 @@ export async function cancelBooking(
       bookingUserFirstName: booking.user.firstName,
       className: booking.session.classType.name,
       refundAmount,
+      feeApplied,
       promotedUser,
     };
   });
@@ -325,6 +331,7 @@ export async function cancelBooking(
         firstName: result.bookingUserFirstName,
         className: result.className,
         refunded: result.refundAmount,
+        feeApplied: result.feeApplied,
       }),
     });
     if (result.promotedUser) {

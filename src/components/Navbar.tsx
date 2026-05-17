@@ -35,6 +35,18 @@ export default function Navbar({ user }: Props) {
                 Planning
               </Link>
               <Link
+                href="/classes"
+                className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
+              >
+                Cours
+              </Link>
+              <Link
+                href="/instructors"
+                className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
+              >
+                Instructeurs
+              </Link>
+              <Link
                 href="/packs"
                 className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
               >

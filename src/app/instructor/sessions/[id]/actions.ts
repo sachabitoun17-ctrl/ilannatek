@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 export async function markAttendanceAction(
   bookingId: string,
@@ -13,7 +14,7 @@ export async function markAttendanceAction(
   const me = await requireStaff();
   const booking = await db.booking.findUnique({
     where: { id: bookingId },
-    include: { session: true, user: true },
+    include: { session: { include: { classType: true } }, user: true },
   });
   if (!booking) return { ok: false as const, error: "Réservation introuvable" };
   if (me.role !== "ADMIN" && booking.session.instructorId !== me.id) {
@@ -21,30 +22,46 @@ export async function markAttendanceAction(
   }
 
   const settings = await getSettings();
+  let newBalance: number | null = null;
+
   await db.$transaction(async (tx) => {
     await tx.booking.update({
       where: { id: bookingId },
       data: { status },
     });
 
-    // Apply no-show fee
     if (status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0) {
       const fee = settings.noShowFee;
-      await tx.user.update({
+      const updated = await tx.user.update({
         where: { id: booking.userId },
         data: { creditsBalance: { decrement: fee } },
+        select: { creditsBalance: true },
       });
+      newBalance = updated.creditsBalance;
       await tx.transaction.create({
         data: {
           userId: booking.userId,
           type: "NO_SHOW_FEE",
           creditsDelta: -fee,
-          description: "Frais d'absence non excusée",
+          description: `Frais d'absence — ${booking.session.classType.name}`,
           paymentStatus: "FREE",
         },
       });
     }
   });
+
+  // Email notification for no-show fee
+  if (status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0 && newBalance !== null) {
+    void sendEmail({
+      to: booking.user.email,
+      ...emailTemplates.noShowFee({
+        firstName: booking.user.firstName,
+        className: booking.session.classType.name,
+        fee: settings.noShowFee,
+        newBalance,
+      }),
+    });
+  }
 
   void audit({
     actorId: me.id,

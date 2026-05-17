@@ -119,7 +119,10 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Reporting</h1>
+        <div>
+          <p className="section-title">Administration</p>
+          <h1 className="font-serif text-4xl font-medium text-brand-600 mt-0.5">Reporting</h1>
+        </div>
         <div className="flex flex-wrap gap-2">
           <a href="/api/export/transactions" className="btn-secondary text-sm">
             ↓ Transactions CSV
@@ -146,32 +149,32 @@ export default async function ReportsPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="card">
-          <h3 className="font-semibold mb-4">Chiffre d'affaires — 12 derniers mois</h3>
+          <p className="section-title mb-3">Chiffre d'affaires — 12 derniers mois</p>
           <RevenueChart data={revenueChartData} />
         </div>
         <div className="card">
-          <h3 className="font-semibold mb-4">Réservations — 14 derniers jours</h3>
+          <p className="section-title mb-3">Réservations — 14 derniers jours</p>
           <BookingsChart data={bookingsChartData} />
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="card">
-          <h3 className="font-semibold mb-2">Top instructeurs (30j)</h3>
+          <p className="section-title mb-3">Top instructeurs (30j)</p>
           <table className="w-full text-sm">
-            <thead className="text-xs text-gray-500 text-left">
+            <thead className="text-left">
               <tr>
-                <th>Instructeur</th>
-                <th className="text-right">Inscrits</th>
+                <th className="text-[10px] uppercase tracking-[0.18em] text-stone2-500 font-normal pb-2">Instructeur</th>
+                <th className="text-[10px] uppercase tracking-[0.18em] text-stone2-500 font-normal pb-2 text-right">Inscrits</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-stone2-100">
               {topInstructors.map((r) => (
                 <tr key={r.instructorId}>
-                  <td className="py-2">
+                  <td className="py-2 text-brand-600">
                     {r.firstName} {r.lastName}
                   </td>
-                  <td className="text-right font-medium">{Number(r.n)}</td>
+                  <td className="text-right font-medium text-brand-600">{Number(r.n)}</td>
                 </tr>
               ))}
             </tbody>
@@ -179,21 +182,21 @@ export default async function ReportsPage() {
         </div>
 
         <div className="card">
-          <h3 className="font-semibold mb-2">Top cours (30j)</h3>
+          <p className="section-title mb-3">Top cours (30j)</p>
           <table className="w-full text-sm">
-            <thead className="text-xs text-gray-500 text-left">
+            <thead className="text-left">
               <tr>
-                <th>Cours</th>
-                <th className="text-right">Inscrits</th>
-                <th className="text-right">Remplissage</th>
+                <th className="text-[10px] uppercase tracking-[0.18em] text-stone2-500 font-normal pb-2">Cours</th>
+                <th className="text-[10px] uppercase tracking-[0.18em] text-stone2-500 font-normal pb-2 text-right">Inscrits</th>
+                <th className="text-[10px] uppercase tracking-[0.18em] text-stone2-500 font-normal pb-2 text-right">Remplissage</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-stone2-100">
               {topClassTypes.map((r) => (
                 <tr key={r.classTypeId}>
-                  <td className="py-2">{r.name}</td>
-                  <td className="text-right">{Number(r.n)}</td>
-                  <td className="text-right text-gray-500">
+                  <td className="py-2 text-brand-600">{r.name}</td>
+                  <td className="text-right text-brand-600">{Number(r.n)}</td>
+                  <td className="text-right text-stone2-400">
                     {r.cap ? `${Math.round((Number(r.n) / Number(r.cap)) * 100)}%` : "—"}
                   </td>
                 </tr>
@@ -203,7 +206,7 @@ export default async function ReportsPage() {
         </div>
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-stone2-400">
         Crédits totaux consommés depuis le début : {Math.abs(creditsConsumed._sum.creditsDelta ?? 0)}.
       </p>
     </div>
@@ -221,9 +224,9 @@ function Stat({
 }) {
   return (
     <div className="card">
-      <p className="text-xs uppercase text-gray-500">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
-      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+      <p className="section-title">{label}</p>
+      <p className="font-serif text-3xl text-brand-600 mt-1">{value}</p>
+      {hint && <p className="text-xs text-stone2-400 mt-1">{hint}</p>}
     </div>
   );
 }

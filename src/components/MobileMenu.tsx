@@ -15,6 +15,8 @@ type User = {
 
 const NAV_LINKS = [
   { href: "/schedule", label: "Planning" },
+  { href: "/classes", label: "Cours" },
+  { href: "/instructors", label: "Instructeurs" },
   { href: "/packs", label: "Crédits" },
   { href: "/subscriptions", label: "Abonnements" },
 ];
