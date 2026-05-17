@@ -4,12 +4,13 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 
-if (!process.env.AUTH_SECRET && process.env.NODE_ENV === "production") {
-  throw new Error("AUTH_SECRET env var is required in production");
+function getSecret() {
+  const s = process.env.AUTH_SECRET;
+  if (!s && process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET env var is required in production");
+  }
+  return new TextEncoder().encode(s ?? "dev-secret-change-me-in-production");
 }
-const SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET ?? "dev-secret-change-me-in-production"
-);
 const COOKIE_NAME = "ilannatek_session";
 const SESSION_DAYS = 30;
 
@@ -33,12 +34,12 @@ export async function createSession(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DAYS}d`)
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 export async function verifyJwt(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET);
+    const { payload } = await jwtVerify(token, getSecret());
     return payload as unknown as SessionPayload;
   } catch {
     return null;
