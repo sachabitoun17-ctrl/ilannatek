@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
+import { cache } from "react";
 import { db } from "./db";
 
 function getSecret() {
@@ -64,7 +65,9 @@ export async function clearSessionCookie() {
  * Reads JWT from cookie and validates it against the DB session version.
  * This lets us invalidate all of a user's sessions by bumping User.sessionVersion.
  */
-export async function getCurrentUser() {
+// cache() deduplicates this DB call within a single request —
+// layout + page both call it but only one query goes to the DB.
+export const getCurrentUser = cache(async function getCurrentUser() {
   const token = cookies().get(COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = await verifyJwt(token);
@@ -88,7 +91,7 @@ export async function getCurrentUser() {
   if (!user.active || user.banned) return null;
   if (user.sessionVersion !== payload.v) return null;
   return user;
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();

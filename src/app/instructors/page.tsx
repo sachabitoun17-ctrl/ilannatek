@@ -1,20 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { getCachedInstructors } from "@/lib/cached";
 import { addDays, startOfDay } from "@/lib/utils";
 
 export default async function InstructorsPage() {
   const [instructors, upcomingSessions] = await Promise.all([
-    db.user.findMany({
-      where: { role: { in: ["INSTRUCTOR", "ADMIN"] }, active: true },
-      orderBy: { firstName: "asc" },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        instructorBio: true,
-        instructorPhoto: true,
-      },
-    }),
+    getCachedInstructors(),
     db.session.findMany({
       where: {
         startTime: { gte: startOfDay(new Date()), lte: addDays(new Date(), 30) },

@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { getCachedClassTypes } from "@/lib/cached";
 import { addDays, startOfDay } from "@/lib/utils";
 
 export default async function ClassesPage() {
   const [classTypes, upcomingSessions] = await Promise.all([
-    db.classType.findMany({
-      where: { active: true },
-      orderBy: { name: "asc" },
-    }),
+    getCachedClassTypes(),
     db.session.findMany({
       where: {
         startTime: { gte: startOfDay(new Date()), lte: addDays(new Date(), 14) },

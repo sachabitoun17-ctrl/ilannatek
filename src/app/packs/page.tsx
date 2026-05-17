@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getCachedPlans } from "@/lib/cached";
 import { formatPrice } from "@/lib/utils";
 import PurchaseButton from "./PurchaseButton";
 
@@ -10,11 +11,8 @@ export default async function PacksPage({
 }: {
   searchParams?: { from?: string };
 }) {
-  const user = await getCurrentUser();
-  const packs = await db.plan.findMany({
-    where: { type: "CREDIT_PACK", active: true },
-    orderBy: { priceCents: "asc" },
-  });
+  const [user, allPlans] = await Promise.all([getCurrentUser(), getCachedPlans()]);
+  const packs = allPlans.filter((p) => p.type === "CREDIT_PACK");
 
   const maxPrice = packs.length > 0 ? Math.max(...packs.map((p) => p.priceCents)) : 0;
   const fromSchedule = searchParams?.from === "schedule";

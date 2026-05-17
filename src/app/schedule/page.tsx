@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getCachedClassTypes, getCachedLocations } from "@/lib/cached";
 import { addDays, endOfDay, formatDate, startOfDay } from "@/lib/utils";
 import ScheduleClient from "./ScheduleClient";
 
@@ -43,8 +44,8 @@ export default async function SchedulePage({
   );
 
   const [locations, classTypes] = await Promise.all([
-    db.location.findMany({ orderBy: { name: "asc" } }),
-    db.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    getCachedLocations(),
+    getCachedClassTypes(),
   ]);
   const locationFilter = searchParams.location;
 
