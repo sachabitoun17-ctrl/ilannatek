@@ -8,7 +8,15 @@ export const metadata: Metadata = {
   title: "Ilannatek — Studio Boutique",
   description:
     "Réservez vos cours dans notre studio boutique. Planning, packs de crédits et abonnements disponibles en ligne.",
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: "/icon-192",
+    apple: "/icon-192",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ilannatek",
+  },
   openGraph: {
     title: "Ilannatek — Studio Boutique",
     description: "Réservez vos cours en quelques secondes.",

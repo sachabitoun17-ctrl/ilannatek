@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { verifyCronAuth } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,10 +14,8 @@ export const dynamic = "force-dynamic";
  * hourly window 24-25h being narrow, which avoids duplicates if cron is hourly).
  */
 export async function GET(req: NextRequest) {
-  const key = req.nextUrl.searchParams.get("key");
-  if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   const now = new Date();
   const start = new Date(now.getTime() + 24 * 60 * 60 * 1000);

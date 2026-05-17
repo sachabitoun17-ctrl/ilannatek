@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { verifyCronAuth } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,9 +22,8 @@ function unauthorized() {
  *    renew locally: extend endDate by intervalDays and grant new credits.
  */
 export async function GET(req: NextRequest) {
-  const key = req.nextUrl.searchParams.get("key");
-  const expected = process.env.CRON_SECRET;
-  if (!expected || key !== expected) return unauthorized();
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   const now = new Date();
 
