@@ -161,13 +161,15 @@ export default async function SchedulePage({
           <p className="text-sm text-stone2-500 capitalize mt-1">{headerLabel}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* View toggle */}
+          {/* View toggle — hide "Grille" on mobile */}
           <div className="inline-flex border border-brand-600 bg-cream-50">
             {(["day", "week", "grid"] as const).map((v) => (
               <Link
                 key={v}
                 href={buildHref(v)}
-                className={`px-4 py-2 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                className={`px-4 min-h-[44px] flex items-center text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                  v === "grid" ? "hidden sm:flex" : ""
+                } ${
                   view === v
                     ? "bg-brand-600 text-cream-50"
                     : "text-brand-600 hover:bg-cream-100"
@@ -178,23 +180,25 @@ export default async function SchedulePage({
             ))}
           </div>
           {/* Location filter */}
-          <form className="flex items-center gap-2">
-            <select
-              name="location"
-              defaultValue={locationFilter ?? ""}
-              className="input text-sm"
-            >
-              <option value="">Tous les studios</option>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-            <input type="hidden" name="date" value={searchParams.date ?? ""} />
-            <input type="hidden" name="view" value={view} />
-            <button className="btn-secondary py-2">Filtrer</button>
-          </form>
+          {locations.length > 1 && (
+            <form className="flex items-center gap-2">
+              <select
+                name="location"
+                defaultValue={locationFilter ?? ""}
+                className="input text-sm"
+              >
+                <option value="">Tous les studios</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+              <input type="hidden" name="date" value={searchParams.date ?? ""} />
+              <input type="hidden" name="view" value={view} />
+              <button className="btn-secondary py-2">Filtrer</button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -202,7 +206,7 @@ export default async function SchedulePage({
       <div className="flex items-center justify-between gap-2 bg-white border border-stone2-200 p-1.5">
         <Link
           href={`/schedule?view=${view}&date=${prevDate}${locationFilter ? `&location=${locationFilter}` : ""}`}
-          className="btn-ghost px-3 py-2"
+          className="btn-ghost px-4 min-h-[44px] flex items-center"
         >
           ←
         </Link>
@@ -211,7 +215,7 @@ export default async function SchedulePage({
             <Link
               key={d.iso}
               href={`/schedule?view=${view}&date=${d.iso}${locationFilter ? `&location=${locationFilter}` : ""}`}
-              className={`flex flex-col items-center px-3 py-2 min-w-[56px] transition-colors ${
+              className={`flex flex-col items-center px-3 py-2 min-w-[48px] min-h-[44px] justify-center transition-colors ${
                 d.isActive
                   ? "bg-brand-600 text-cream-50"
                   : d.isToday
@@ -226,7 +230,7 @@ export default async function SchedulePage({
         </div>
         <Link
           href={`/schedule?view=${view}&date=${nextDate}${locationFilter ? `&location=${locationFilter}` : ""}`}
-          className="btn-ghost px-3 py-2"
+          className="btn-ghost px-4 min-h-[44px] flex items-center"
         >
           →
         </Link>

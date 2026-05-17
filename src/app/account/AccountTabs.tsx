@@ -401,36 +401,62 @@ function TransactionsTab({ transactions }: { transactions: Tx[] }) {
     );
 
   return (
-    <div className="bg-white border border-stone2-200 overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-stone2-200">
-            <th className="text-left px-5 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Date</th>
-            <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Opération</th>
-            <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Crédits</th>
-            <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Montant</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-stone2-100">
-          {transactions.map((t) => (
-            <tr key={t.id} className="hover:bg-cream-50">
-              <td className="px-5 py-3 text-stone2-500 whitespace-nowrap">
-                {new Date(t.createdAt).toLocaleDateString("fr-FR")}
-              </td>
-              <td className="px-4 py-3">
-                <p className="font-medium text-brand-600">{TX_LABELS[t.type] ?? t.type}</p>
-                {t.description && <p className="text-xs text-stone2-500">{t.description}</p>}
-              </td>
-              <td className={`px-4 py-3 text-right font-medium tabular-nums ${t.creditsDelta > 0 ? "text-green-700" : t.creditsDelta < 0 ? "text-red-700" : "text-stone2-400"}`}>
-                {t.creditsDelta > 0 ? `+${t.creditsDelta}` : t.creditsDelta !== 0 ? t.creditsDelta : "—"}
-              </td>
-              <td className="px-5 py-3 text-right text-stone2-600 tabular-nums">
-                {t.amountCents > 0 ? formatPrice(t.amountCents) : "—"}
-              </td>
+    <>
+      {/* Mobile cards */}
+      <div className="sm:hidden divide-y divide-stone2-100 border border-stone2-200 bg-white">
+        {transactions.map((t) => (
+          <div key={t.id} className="px-4 py-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-medium text-brand-600 text-sm">{TX_LABELS[t.type] ?? t.type}</p>
+              {t.description && <p className="text-xs text-stone2-500 mt-0.5 truncate">{t.description}</p>}
+              <p className="text-[10px] text-stone2-400 mt-1">{new Date(t.createdAt).toLocaleDateString("fr-FR")}</p>
+            </div>
+            <div className="text-right shrink-0">
+              {t.creditsDelta !== 0 && (
+                <p className={`text-sm font-medium tabular-nums ${t.creditsDelta > 0 ? "text-green-700" : "text-red-700"}`}>
+                  {t.creditsDelta > 0 ? `+${t.creditsDelta}` : t.creditsDelta} cr.
+                </p>
+              )}
+              {t.amountCents > 0 && (
+                <p className="text-xs text-stone2-600 tabular-nums">{formatPrice(t.amountCents)}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block bg-white border border-stone2-200 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-stone2-200">
+              <th className="text-left px-5 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Date</th>
+              <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Opération</th>
+              <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Crédits</th>
+              <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Montant</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-stone2-100">
+            {transactions.map((t) => (
+              <tr key={t.id} className="hover:bg-cream-50">
+                <td className="px-5 py-3 text-stone2-500 whitespace-nowrap">
+                  {new Date(t.createdAt).toLocaleDateString("fr-FR")}
+                </td>
+                <td className="px-4 py-3">
+                  <p className="font-medium text-brand-600">{TX_LABELS[t.type] ?? t.type}</p>
+                  {t.description && <p className="text-xs text-stone2-500">{t.description}</p>}
+                </td>
+                <td className={`px-4 py-3 text-right font-medium tabular-nums ${t.creditsDelta > 0 ? "text-green-700" : t.creditsDelta < 0 ? "text-red-700" : "text-stone2-400"}`}>
+                  {t.creditsDelta > 0 ? `+${t.creditsDelta}` : t.creditsDelta !== 0 ? t.creditsDelta : "—"}
+                </td>
+                <td className="px-5 py-3 text-right text-stone2-600 tabular-nums">
+                  {t.amountCents > 0 ? formatPrice(t.amountCents) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
