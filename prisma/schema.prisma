@@ -29,6 +29,8 @@ model User {
   active          Boolean  @default(true)
   // soft-blocked because of repeated no-shows
   banned          Boolean  @default(false)
+  // freeze credits until this date (self-service holiday pause)
+  creditsFrozenUntil DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -40,6 +42,8 @@ model User {
   auditLogs          AuditLog[]     @relation("AuditActor")
   loginAttempts      LoginAttempt[]
   passwordResetTokens PasswordResetToken[]
+  recurringSlots     RecurringSlot[]
+  sentInvites        FriendInvite[] @relation("SentInvites")
 }
 
 model LoginAttempt {
@@ -62,7 +66,8 @@ model Location {
   timezone  String   @default("Europe/Paris")
   createdAt DateTime @default(now())
 
-  sessions Session[]
+  sessions       Session[]
+  recurringSlots RecurringSlot[]
 }
 
 model ClassType {
@@ -77,6 +82,7 @@ model ClassType {
 
   sessions       Session[]
   recurringRules RecurringRule[]
+  recurringSlots RecurringSlot[]
 }
 
 model RecurringRule {
@@ -134,8 +140,11 @@ model Booking {
   feeApplied      Int      @default(0)
   cancelledAt     DateTime?
   promotedFromWaitlistAt DateTime?
+  reminder2hSentAt DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  waitlistTokens WaitlistToken[]
 
   @@unique([sessionId, userId])
   @@index([userId])
@@ -274,6 +283,54 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime @default(now())
 
+  @@index([token])
+}
+
+// Token sent when a waitlist spot opens — member has 30 min to confirm
+model WaitlistToken {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([bookingId])
+}
+
+// Member subscribes to a recurring slot (e.g. every Monday 7h Yoga)
+model RecurringSlot {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classTypeId  String
+  classType    ClassType @relation(fields: [classTypeId], references: [id])
+  locationId   String?
+  location     Location? @relation(fields: [locationId], references: [id])
+  dayOfWeek    Int       // 0=Sunday … 6=Saturday
+  startTimeMin Int       // minutes from midnight
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  @@unique([userId, classTypeId, dayOfWeek, startTimeMin])
+  @@index([classTypeId, dayOfWeek, startTimeMin])
+}
+
+// Duo invite — member sends 1 free credit to a friend
+model FriendInvite {
+  id             String   @id @default(cuid())
+  fromUserId     String
+  from           User     @relation("SentInvites", fields: [fromUserId], references: [id])
+  toEmail        String
+  token          String   @unique
+  creditsGranted Int      @default(1)
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([fromUserId])
   @@index([token])
 }
 

@@ -4,11 +4,12 @@ import { getCachedInstructors } from "@/lib/cached";
 import { addDays, startOfDay } from "@/lib/utils";
 
 export default async function InstructorsPage() {
-  const [instructors, upcomingSessions] = await Promise.all([
+  const now = new Date();
+  const [instructors, upcomingSessions, allSessions] = await Promise.all([
     getCachedInstructors(),
     db.session.findMany({
       where: {
-        startTime: { gte: startOfDay(new Date()), lte: addDays(new Date(), 30) },
+        startTime: { gte: startOfDay(now), lte: addDays(now, 30) },
         status: "SCHEDULED",
       },
       select: {
@@ -18,14 +19,65 @@ export default async function InstructorsPage() {
       },
       orderBy: { startTime: "asc" },
     }),
+    // For stats: all sessions taught (scheduled + past)
+    db.session.findMany({
+      where: { status: { in: ["SCHEDULED", "COMPLETED", "CANCELLED"] } },
+      select: {
+        id: true,
+        instructorId: true,
+        classTypeId: true,
+        classType: { select: { name: true } },
+        bookings: {
+          where: { status: { in: ["CONFIRMED", "ATTENDED"] } },
+          select: { userId: true },
+        },
+      },
+    }),
   ]);
 
-  // Group sessions by instructor
+  // Group upcoming sessions by instructor
   const sessionsByInstructor = new Map<string, typeof upcomingSessions>();
   for (const s of upcomingSessions) {
     const existing = sessionsByInstructor.get(s.instructorId) ?? [];
     existing.push(s);
     sessionsByInstructor.set(s.instructorId, existing);
+  }
+
+  // Compute stats per instructor
+  const statsMap = new Map<
+    string,
+    { totalSessions: number; totalStudents: number; specialties: string[] }
+  >();
+
+  for (const inst of instructors) {
+    const mySessions = allSessions.filter((s) => s.instructorId === inst.id);
+    const totalSessions = mySessions.length;
+
+    // Unique students across all their sessions
+    const studentSet = new Set<string>();
+    for (const s of mySessions) {
+      for (const b of s.bookings) {
+        studentSet.add(b.userId);
+      }
+    }
+    const totalStudents = studentSet.size;
+
+    // Top 3 class types by session count
+    const classTypeCounts = new Map<string, { name: string; count: number }>();
+    for (const s of mySessions) {
+      const existing = classTypeCounts.get(s.classTypeId);
+      if (existing) {
+        existing.count++;
+      } else {
+        classTypeCounts.set(s.classTypeId, { name: s.classType.name, count: 1 });
+      }
+    }
+    const specialties = [...classTypeCounts.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+      .map((x) => x.name);
+
+    statsMap.set(inst.id, { totalSessions, totalStudents, specialties });
   }
 
   return (
@@ -47,6 +99,7 @@ export default async function InstructorsPage() {
           const sessions = sessionsByInstructor.get(inst.id) ?? [];
           const nextSessions = sessions.slice(0, 3);
           const initials = `${inst.firstName[0]}${inst.lastName[0]}`;
+          const stats = statsMap.get(inst.id) ?? { totalSessions: 0, totalStudents: 0, specialties: [] };
 
           return (
             <div key={inst.id} className="py-10 md:py-12 grid md:grid-cols-[180px_1fr] gap-8 md:gap-16 items-start">
@@ -67,15 +120,47 @@ export default async function InstructorsPage() {
                   <h2 className="font-serif text-2xl text-brand-600">
                     {inst.firstName} {inst.lastName}
                   </h2>
+                  <Link
+                    href={`/instructors/${inst.id}`}
+                    className="text-[10px] uppercase tracking-[0.15em] text-accent-500 hover:text-brand-600 transition-colors mt-1 block"
+                  >
+                    Voir le profil →
+                  </Link>
+                </div>
+
+                {/* Stats */}
+                <div className="flex gap-4 border-t border-stone2-200 pt-4 w-full justify-center">
+                  <div className="text-center">
+                    <p className="font-serif text-2xl text-brand-600">{stats.totalSessions}</p>
+                    <p className="text-[9px] uppercase tracking-widest text-stone2-400">Séances</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-serif text-2xl text-brand-600">{stats.totalStudents}</p>
+                    <p className="text-[9px] uppercase tracking-widest text-stone2-400">Élèves</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Bio + sessions */}
+              {/* Bio + specialties + sessions */}
               <div className="space-y-6">
                 {inst.instructorBio ? (
                   <p className="text-stone2-600 leading-relaxed">{inst.instructorBio}</p>
                 ) : (
                   <p className="text-stone2-400 italic text-sm">Biographie à venir.</p>
+                )}
+
+                {/* Specialties */}
+                {stats.specialties.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {stats.specialties.map((sp) => (
+                      <span
+                        key={sp}
+                        className="text-[10px] uppercase tracking-[0.15em] px-3 py-1 bg-cream-50 border border-stone2-200 text-stone2-600"
+                      >
+                        {sp}
+                      </span>
+                    ))}
+                  </div>
                 )}
 
                 {nextSessions.length > 0 && (

@@ -90,6 +90,16 @@ const TEMPLATE_META: Record<
     description: "Notifie les inscrits quand l'admin annule une séance, avec remboursement des crédits.",
     trigger: "Annulation ou suppression d'une séance par l'admin",
   },
+  waitlistSpotAvailable: {
+    label: "Place dispo (liste d'attente)",
+    description: "Notifie le prochain en liste d'attente — lien d'acceptation valable 30 min.",
+    trigger: "Annulation d'une réservation confirmée",
+  },
+  friendInvite: {
+    label: "Invitation ami (Duo)",
+    description: "Email envoyé à un ami invité par un membre — contient un lien d'inscription avec crédit offert.",
+    trigger: "Envoi d'invitation depuis /invite",
+  },
 };
 
 function previewFor(key: TemplateKey, firstName: string) {
@@ -194,6 +204,20 @@ function previewFor(key: TemplateKey, firstName: string) {
         startTime: new Date(Date.now() + 86400000),
         creditsRefunded: 1,
       });
+    case "waitlistSpotAvailable":
+      return emailTemplates.waitlistSpotAvailable({
+        firstName,
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 3600000 * 2),
+        location: "Paris 11ème",
+        acceptUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/account/waitlist/accept/preview`,
+      });
+    case "friendInvite":
+      return emailTemplates.friendInvite({
+        fromName: firstName,
+        toEmail: "ami@exemple.fr",
+        acceptUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/invite/preview`,
+      });
   }
 }
 
@@ -201,16 +225,17 @@ export default async function EmailsPage() {
   const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
 
   const keys = Object.keys(emailTemplates) as TemplateKey[];
-  const templates = keys.map((k) => {
+  const templates = keys.flatMap((k) => {
     const tpl = previewFor(k, user?.firstName ?? "Sasha");
-    return {
+    if (!tpl) return [];
+    return [{
       key: k,
       label: TEMPLATE_META[k].label,
       description: TEMPLATE_META[k].description,
       trigger: TEMPLATE_META[k].trigger,
       subject: tpl.subject,
       html: tpl.html,
-    };
+    }];
   });
 
   const resendConfigured = !!process.env.RESEND_API_KEY;

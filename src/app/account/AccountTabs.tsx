@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cancelAction } from "../schedule/actions";
 import { freezeSubscriptionAction as freezeAction, unfreezeSubscriptionAction as unfreezeAction } from "./actions";
+import { freezeCredits, unfreezeCredits } from "./freeze-actions";
 import { formatPrice } from "@/lib/utils";
 import { BookingQRButton } from "@/components/BookingQRButton";
 
@@ -82,13 +83,17 @@ export default function AccountTabs({
   past,
   subs,
   transactions,
+  isFrozen,
+  creditsFrozenUntil,
 }: {
   upcoming: UpcomingBooking[];
   past: PastBooking[];
   subs: Sub[];
   transactions: Tx[];
+  isFrozen: boolean;
+  creditsFrozenUntil: string | null;
 }) {
-  const tabs = ["À venir", "Historique", "Abonnements", "Achats"] as const;
+  const tabs = ["À venir", "Historique", "Abonnements", "Achats", "Pause"] as const;
   const [tab, setTab] = useState<(typeof tabs)[number]>("À venir");
 
   return (
@@ -113,6 +118,13 @@ export default function AccountTabs({
             )}
           </button>
         ))}
+        {/* Navigation link to the recurring slots page */}
+        <Link
+          href="/account/recurring"
+          className="px-5 py-3 text-[11px] uppercase tracking-[0.2em] shrink-0 transition-colors border-b-2 border-transparent text-stone2-500 hover:text-brand-600"
+        >
+          Créneaux récurrents
+        </Link>
       </div>
 
       <div className="mt-5">
@@ -120,6 +132,9 @@ export default function AccountTabs({
         {tab === "Historique" && <PastTab bookings={past} />}
         {tab === "Abonnements" && <SubsTab subs={subs} />}
         {tab === "Achats" && <TransactionsTab transactions={transactions} />}
+        {tab === "Pause" && (
+          <PauseTab isFrozen={isFrozen} creditsFrozenUntil={creditsFrozenUntil} />
+        )}
       </div>
     </div>
   );
@@ -458,5 +473,119 @@ function TransactionsTab({ transactions }: { transactions: Tx[] }) {
         </table>
       </div>
     </>
+  );
+}
+
+// ─── Pause tab (freeze credits) ───────────────────────────────────────────────
+
+const DURATIONS: { label: string; weeks: number }[] = [
+  { label: "1 semaine", weeks: 1 },
+  { label: "2 semaines", weeks: 2 },
+  { label: "3 semaines", weeks: 3 },
+  { label: "1 mois", weeks: 4 },
+];
+
+function PauseTab({
+  isFrozen,
+  creditsFrozenUntil,
+}: {
+  isFrozen: boolean;
+  creditsFrozenUntil: string | null;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [selectedWeeks, setSelectedWeeks] = useState(1);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const doFreeze = () => {
+    startTransition(async () => {
+      await freezeCredits(selectedWeeks);
+      setMessage("Vos crédits ont été gelés.");
+      router.refresh();
+      setTimeout(() => setMessage(null), 4000);
+    });
+  };
+
+  const doUnfreeze = () => {
+    startTransition(async () => {
+      await unfreezeCredits();
+      setMessage("Le gel a été annulé.");
+      router.refresh();
+      setTimeout(() => setMessage(null), 4000);
+    });
+  };
+
+  return (
+    <div className="max-w-lg">
+      {message && (
+        <p className="text-sm text-brand-600 border border-brand-600 px-4 py-2 bg-cream-100 mb-4">
+          {message}
+        </p>
+      )}
+
+      {isFrozen ? (
+        <div className="bg-white border border-stone2-200 p-6 space-y-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-accent-600 mb-1">Crédits en pause</p>
+            <p className="font-serif text-2xl text-brand-600">
+              Crédits gelés jusqu&apos;au{" "}
+              {creditsFrozenUntil
+                ? new Date(creditsFrozenUntil).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "—"}
+            </p>
+            <p className="text-sm text-stone2-500 mt-2">
+              Vos crédits ne peuvent pas être utilisés pendant cette période.
+            </p>
+          </div>
+          <button
+            onClick={doUnfreeze}
+            disabled={pending}
+            className="btn-secondary"
+          >
+            {pending ? "…" : "Annuler le gel"}
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white border border-stone2-200 p-6 space-y-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 mb-1">Pause crédits</p>
+            <p className="font-serif text-2xl text-brand-600 mb-2">Geler mes crédits</p>
+            <p className="text-sm text-stone2-500 leading-relaxed">
+              Geler vos crédits empêche leur utilisation pendant vos absences.
+              Vos crédits ne disparaissent pas — ils vous attendent à votre retour.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-stone2-400">Durée</p>
+            <div className="flex flex-wrap gap-2">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d.weeks}
+                  onClick={() => setSelectedWeeks(d.weeks)}
+                  className={`px-4 py-2 text-sm border transition-colors ${
+                    selectedWeeks === d.weeks
+                      ? "bg-brand-600 text-cream-50 border-brand-600"
+                      : "bg-white text-brand-600 border-stone2-300 hover:border-brand-600"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={doFreeze}
+            disabled={pending}
+            className="btn-primary"
+          >
+            {pending ? "…" : "Geler mes crédits"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

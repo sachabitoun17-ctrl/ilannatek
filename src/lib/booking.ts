@@ -52,6 +52,18 @@ export async function bookSession(
     if (!user) return { ok: false as const, error: "Utilisateur introuvable" };
     if (user.banned) return { ok: false as const, error: "Compte suspendu" };
 
+    if (user.creditsFrozenUntil && user.creditsFrozenUntil > new Date()) {
+      const frozenUntilStr = user.creditsFrozenUntil.toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      return {
+        ok: false as const,
+        error: `Vos crédits sont gelés jusqu'au ${frozenUntilStr}. Annulez le gel depuis votre compte.`,
+      };
+    }
+
     const cost = session.classType.creditCost;
     if (!isWaitlist && user.creditsBalance < cost) {
       return {
@@ -265,40 +277,63 @@ export async function cancelBooking(
       email: string;
       className: string;
       startTime: Date;
+      token: string;
     } | null = null;
 
     if (wasConfirmed) {
       const cost = booking.session.classType.creditCost;
 
-      // Try each waitlisted user in order — skip those with insufficient credits
+      // Get all waitlisted bookings ordered by position
       const waitlistedAll = await tx.booking.findMany({
         where: { sessionId: booking.sessionId, status: "WAITLIST" },
         orderBy: { waitlistPos: "asc" },
         include: { user: true, session: { include: { classType: true } } },
       });
 
-      for (const candidate of waitlistedAll) {
-        if (candidate.user.creditsBalance >= cost) {
-          await tx.booking.update({
-            where: { id: candidate.id },
-            data: {
-              status: "CONFIRMED",
-              waitlistPos: null,
-              creditsUsed: cost,
-              promotedFromWaitlistAt: new Date(),
+      // Compute reliability score for each candidate (last 90 days)
+      const since90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+      const reliabilityScores = await Promise.all(
+        waitlistedAll.map(async (candidate) => {
+          const recentConfirmed = await tx.booking.count({
+            where: {
+              userId: candidate.userId,
+              status: { in: ["CONFIRMED", "ATTENDED", "NO_SHOW"] },
+              session: { startTime: { gte: since90, lt: new Date() } },
             },
           });
-          await tx.user.update({
-            where: { id: candidate.userId },
-            data: { creditsBalance: { decrement: cost } },
-          });
-          await tx.transaction.create({
-            data: {
+          const checkedIn = await tx.booking.count({
+            where: {
               userId: candidate.userId,
-              type: "CREDIT_USE",
-              creditsDelta: -cost,
-              description: `Promotion liste d'attente ${candidate.session.classType.name}`,
-              paymentStatus: "FREE",
+              status: "ATTENDED",
+              session: { startTime: { gte: since90, lt: new Date() } },
+            },
+          });
+          // reliability = checkins / total; 0 bookings => score 1 (neutral, no data)
+          const score = recentConfirmed > 0 ? checkedIn / recentConfirmed : 1;
+          return { candidate, score };
+        })
+      );
+
+      // Sort: primary = reliability DESC, secondary = waitlistPos ASC
+      reliabilityScores.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return (a.candidate.waitlistPos ?? 0) - (b.candidate.waitlistPos ?? 0);
+      });
+
+      for (const { candidate } of reliabilityScores) {
+        if (
+          candidate.user.creditsBalance >= cost &&
+          !(candidate.user.creditsFrozenUntil && candidate.user.creditsFrozenUntil > new Date())
+        ) {
+          // Issue a 30-min token instead of auto-confirming
+          const token = crypto.randomUUID();
+          const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+          await tx.waitlistToken.create({
+            data: {
+              bookingId: candidate.id,
+              token,
+              expiresAt,
             },
           });
           promotedUser = {
@@ -307,6 +342,7 @@ export async function cancelBooking(
             email: candidate.user.email,
             className: candidate.session.classType.name,
             startTime: booking.session.startTime,
+            token,
           };
           break;
         }
@@ -332,6 +368,8 @@ export async function cancelBooking(
       bookingUserEmail: booking.user.email,
       bookingUserFirstName: booking.user.firstName,
       className: booking.session.classType.name,
+      sessionStartTime: booking.session.startTime,
+      locationName: booking.session.location.name,
       refundAmount,
       feeApplied,
       promotedUser,
@@ -356,12 +394,16 @@ export async function cancelBooking(
     });
     if (result.promotedUser) {
       const p = result.promotedUser;
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+      const acceptUrl = `${siteUrl}/account/waitlist/accept/${p.token}`;
       void sendEmail({
         to: p.email,
-        ...emailTemplates.promotedFromWaitlist({
+        ...emailTemplates.waitlistSpotAvailable({
           firstName: p.firstName,
           className: p.className,
           startTime: p.startTime,
+          location: result.locationName,
+          acceptUrl,
         }),
       });
     }
