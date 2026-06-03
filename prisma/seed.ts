@@ -8,6 +8,11 @@ function addDays(d: Date, n: number) {
   r.setDate(r.getDate() + n);
   return r;
 }
+function setTime(d: Date, h: number, m: number) {
+  const r = new Date(d);
+  r.setHours(h, m, 0, 0);
+  return r;
+}
 
 async function main() {
   console.log("Seeding database...");
@@ -16,7 +21,7 @@ async function main() {
   const memberPw = await bcrypt.hash("member1234", 10);
   const instrPw = await bcrypt.hash("instructor1234", 10);
 
-  // ─── Admin ───────────────────────────────────────────────────────────────────
+  // ─── Admin ────────────────────────────────────────────────────────────────────
   const admin = await db.user.upsert({
     where: { email: "admin@ilannatek.fr" },
     update: {},
@@ -32,11 +37,34 @@ async function main() {
 
   // ─── Instructeurs ─────────────────────────────────────────────────────────────
   const instructorsData = [
-    { firstName: "Camille", lastName: "Martin", bio: "Professeure de Yoga & méditation depuis 8 ans. Certifiée RYT-500." },
-    { firstName: "Hugo", lastName: "Bernard", bio: "Coach HIIT & cardio. Ancien athlète, passionné par le sport collectif." },
-    { firstName: "Léa", lastName: "Petit", bio: "Spécialiste Pilates & Barre. Formée à la méthode Stott Pilates." },
+    {
+      firstName: "Camille", lastName: "Martin",
+      bio: "Professeure de Yoga & méditation depuis 8 ans. Certifiée RYT-500. Spécialiste vinyasa et yin yoga.",
+      specialties: ["Yoga Flow", "Méditation"],
+    },
+    {
+      firstName: "Hugo", lastName: "Bernard",
+      bio: "Coach HIIT & cardio. Ancien athlète de haut niveau, passionné par la performance et le dépassement de soi.",
+      specialties: ["HIIT Cardio", "Indoor Cycling"],
+    },
+    {
+      firstName: "Léa", lastName: "Petit",
+      bio: "Spécialiste Pilates & Barre. Formée à la méthode Stott Pilates, 6 ans d'expérience en studio boutique.",
+      specialties: ["Pilates Mat", "Barre"],
+    },
+    {
+      firstName: "Antoine", lastName: "Rousseau",
+      bio: "Professeur de méditation et yoga restaurateur. Formé en Inde, pratique depuis 12 ans.",
+      specialties: ["Méditation", "Yoga Flow"],
+    },
+    {
+      firstName: "Sofia", lastName: "Garcia",
+      bio: "Instructrice Indoor Cycling et HIIT. Certifiée Spinning®, ex-coureuse cycliste.",
+      specialties: ["Indoor Cycling", "HIIT Cardio"],
+    },
   ];
-  const instructors: Awaited<ReturnType<typeof db.user.upsert>>[] = [];
+
+  const instructors: { id: string; firstName: string }[] = [];
   for (const i of instructorsData) {
     const u = await db.user.upsert({
       where: { email: `${i.firstName.toLowerCase()}@ilannatek.fr` },
@@ -53,7 +81,7 @@ async function main() {
     instructors.push(u);
   }
 
-  // ─── Membres test ────────────────────────────────────────────────────────────
+  // ─── Membres test ─────────────────────────────────────────────────────────────
   const membresData = [
     { first: "Sasha", last: "Dupont", credits: 10 },
     { first: "Marie", last: "Lefebvre", credits: 5 },
@@ -65,9 +93,14 @@ async function main() {
     { first: "Chloé", last: "Girard", credits: 15 },
     { first: "Maxime", last: "Bonnet", credits: 0 },
     { first: "Inès", last: "Chevalier", credits: 6 },
+    { first: "Romain", last: "Blanc", credits: 12 },
+    { first: "Clara", last: "Morel", credits: 4 },
+    { first: "Antoine", last: "Durand", credits: 7 },
+    { first: "Léa", last: "Michel", credits: 2 },
+    { first: "Paul", last: "Garcia", credits: 9 },
   ];
 
-  const membres: Awaited<ReturnType<typeof db.user.upsert>>[] = [];
+  const membres: { id: string; firstName: string; lastName: string }[] = [];
   for (const m of membresData) {
     const u = await db.user.upsert({
       where: { email: `${m.first.toLowerCase()}.${m.last.toLowerCase()}@test.fr` },
@@ -84,7 +117,7 @@ async function main() {
     membres.push(u);
   }
 
-  // ─── Locations ───────────────────────────────────────────────────────────────
+  // ─── Locations ────────────────────────────────────────────────────────────────
   const locations = await Promise.all([
     db.location.upsert({
       where: { id: "loc-paris-11" },
@@ -105,9 +138,10 @@ async function main() {
     { id: "ct-pilates", name: "Pilates Mat", duration: 55, color: "#8b5cf6", cost: 1, desc: "Renforcement musculaire profond en douceur, idéal pour le dos et le gainage." },
     { id: "ct-cycle", name: "Indoor Cycling", duration: 45, color: "#f59e0b", cost: 2, desc: "Vélo indoor sur musique, cardio et endurance au programme." },
     { id: "ct-barre", name: "Barre", duration: 50, color: "#ec4899", cost: 1, desc: "Inspiré de la danse classique, sculpte et allonge la silhouette." },
+    { id: "ct-meditation", name: "Méditation", duration: 45, color: "#6366f1", cost: 1, desc: "Pleine conscience guidée pour réduire le stress et recharger les batteries." },
   ];
 
-  const classTypes: Awaited<ReturnType<typeof db.classType.upsert>>[] = [];
+  const classTypes: { id: string; durationMin: number; creditCost: number }[] = [];
   for (const ct of classTypesData) {
     const c = await db.classType.upsert({
       where: { id: ct.id },
@@ -127,7 +161,7 @@ async function main() {
     { name: "Annuel illimité", type: "SUBSCRIPTION", priceCents: 149000, intervalDays: 365, creditsPerCycle: 1200, description: "12 mois pour le prix de 10" },
   ];
 
-  const plans: Awaited<ReturnType<typeof db.plan.create>>[] = [];
+  const plans: { id: string; name: string }[] = [];
   for (const p of plansData) {
     const existing = await db.plan.findFirst({ where: { name: p.name } });
     if (existing) { plans.push(existing); continue; }
@@ -138,17 +172,22 @@ async function main() {
   // ─── Transactions historiques ─────────────────────────────────────────────────
   const pack5 = plans.find((p) => p.name === "Pack 5 cours")!;
   const pack10 = plans.find((p) => p.name === "Pack 10 cours")!;
+  const mensuel = plans.find((p) => p.name === "Mensuel illimité")!;
 
   const txExisting = await db.transaction.count({ where: { userId: membres[0].id } });
   if (txExisting === 0) {
     const txData = [
-      { user: membres[0], plan: pack5, cents: 9500, credits: 5, daysAgo: 45, desc: "Pack 5 cours" },
-      { user: membres[0], plan: pack5, cents: 9500, credits: 5, daysAgo: 20, desc: "Pack 5 cours" },
-      { user: membres[1], plan: pack10, cents: 18000, credits: 10, daysAgo: 30, desc: "Pack 10 cours" },
-      { user: membres[3], plan: pack10, cents: 18000, credits: 10, daysAgo: 60, desc: "Pack 10 cours" },
-      { user: membres[3], plan: pack10, cents: 18000, credits: 10, daysAgo: 15, desc: "Pack 10 cours" },
-      { user: membres[5], plan: pack5, cents: 9500, credits: 5, daysAgo: 10, desc: "Pack 5 cours" },
-      { user: membres[7], plan: pack10, cents: 18000, credits: 10, daysAgo: 5, desc: "Pack 10 cours" },
+      { user: membres[0], plan: pack5, cents: 9500, credits: 5, daysAgo: 60 },
+      { user: membres[0], plan: pack10, cents: 18000, credits: 10, daysAgo: 30 },
+      { user: membres[0], plan: pack5, cents: 9500, credits: 5, daysAgo: 5 },
+      { user: membres[1], plan: pack10, cents: 18000, credits: 10, daysAgo: 45 },
+      { user: membres[3], plan: mensuel, cents: 14900, credits: 100, daysAgo: 60 },
+      { user: membres[3], plan: mensuel, cents: 14900, credits: 100, daysAgo: 30 },
+      { user: membres[5], plan: pack5, cents: 9500, credits: 5, daysAgo: 15 },
+      { user: membres[7], plan: pack10, cents: 18000, credits: 10, daysAgo: 7 },
+      { user: membres[10], plan: pack10, cents: 18000, credits: 10, daysAgo: 20 },
+      { user: membres[11], plan: pack5, cents: 9500, credits: 5, daysAgo: 10 },
+      { user: membres[13], plan: mensuel, cents: 14900, credits: 100, daysAgo: 3 },
     ];
     for (const tx of txData) {
       await db.transaction.create({
@@ -158,7 +197,7 @@ async function main() {
           type: "CREDIT_PACK_PURCHASE",
           amountCents: tx.cents,
           creditsDelta: tx.credits,
-          description: tx.desc,
+          description: tx.plan.name,
           paymentStatus: "PAID",
           createdAt: addDays(new Date(), -tx.daysAgo),
         },
@@ -190,7 +229,7 @@ async function main() {
     });
   }
 
-  // ─── Séances ──────────────────────────────────────────────────────────────────
+  // ─── Séances (~500 sessions sur 75 jours) ────────────────────────────────────
   const existingSessions = await db.session.count();
   if (existingSessions > 0 && process.env.SEED_RESET_SESSIONS !== "1") {
     console.log(`✓ ${existingSessions} sessions déjà en base — skip`);
@@ -199,26 +238,60 @@ async function main() {
 
     const now = new Date();
     const today = new Date(now);
-    today.setHours(7, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
     const dailySlots = [
-      { h: 7, m: 0 }, { h: 9, m: 30 }, { h: 12, m: 15 },
-      { h: 17, m: 30 }, { h: 19, m: 0 }, { h: 20, m: 30 },
+      { h: 7, m: 0 },
+      { h: 8, m: 0 },
+      { h: 9, m: 30 },
+      { h: 11, m: 0 },
+      { h: 12, m: 15 },
+      { h: 17, m: 30 },
+      { h: 19, m: 0 },
+      { h: 20, m: 30 },
     ];
 
-    // Sessions passées (7 jours) pour avoir de l'historique
-    const createdSessions: Awaited<ReturnType<typeof db.session.create>>[] = [];
-    for (let day = -7; day < 14; day++) {
+    const sundaySlots = [
+      { h: 9, m: 0 },
+      { h: 10, m: 30 },
+      { h: 11, m: 30 },
+    ];
+
+    const instructorByType: Record<string, number[]> = {
+      "ct-yoga": [0, 3],
+      "ct-hiit": [1, 4],
+      "ct-pilates": [2],
+      "ct-cycle": [4, 1],
+      "ct-barre": [2, 0],
+      "ct-meditation": [3, 0],
+    };
+
+    const createdSessions: { id: string; startTime: Date; status: string }[] = [];
+
+    for (let day = -14; day <= 60; day++) {
       const baseDate = addDays(today, day);
-      for (let i = 0; i < dailySlots.length; i++) {
-        const slot = dailySlots[i];
-        const start = new Date(baseDate);
-        start.setHours(slot.h, slot.m, 0, 0);
-        const ct = classTypes[(Math.abs(day) + i) % classTypes.length];
-        const instructor = instructors[(Math.abs(day) + i) % instructors.length];
+      const dayOfWeek = baseDate.getDay();
+      const slots = dayOfWeek === 0 ? sundaySlots : dailySlots;
+
+      const seed = Math.abs(day * 7 + 13);
+      if (day > 0 && seed % 21 === 0) continue;
+
+      for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i];
+        const start = setTime(baseDate, slot.h, slot.m);
+        const isPast = start < now;
+
+        const ctIndex = (Math.abs(day) + i + dayOfWeek) % classTypes.length;
+        const ct = classTypes[ctIndex];
+
+        const instrIndices = instructorByType[ct.id] ?? [0];
+        const instrIdx = instrIndices[(Math.abs(day) + i) % instrIndices.length];
+        const instructor = instructors[instrIdx];
+
         const location = locations[(Math.abs(day) + i) % locations.length];
         const end = new Date(start.getTime() + ct.durationMin * 60000);
-        const isPast = day < 0;
+        const cap = 8 + ((Math.abs(day) + i) % 3) * 4;
+        const isCancelled = isPast && (seed % 20 === 0);
 
         const s = await db.session.create({
           data: {
@@ -227,33 +300,40 @@ async function main() {
             locationId: location.id,
             startTime: start,
             endTime: end,
-            capacity: 12 + (i % 3) * 2,
-            status: isPast && i === 0 ? "CANCELLED" : "SCHEDULED",
+            capacity: cap,
+            status: isCancelled ? "CANCELLED" : "SCHEDULED",
           },
         });
         createdSessions.push(s);
       }
     }
 
-    // Réservations sur les sessions passées (historique réaliste)
-    const pastSessions = createdSessions.filter((s) => s.startTime < now && s.status === "SCHEDULED");
-    for (let i = 0; i < Math.min(pastSessions.length, 25); i++) {
+    const pastSessions = createdSessions.filter(
+      (s) => s.startTime < now && s.status === "SCHEDULED"
+    );
+
+    for (let i = 0; i < pastSessions.length; i++) {
       const session = pastSessions[i];
-      const membersToBook = membres.slice(0, 3 + (i % 5));
+      const seed = i * 7 + 3;
+      const count = 2 + (seed % 7);
+      const membersToBook = membres.slice(0, Math.min(count, membres.length));
+
       for (const m of membersToBook) {
-        const alreadyBooked = await db.booking.findUnique({
+        const already = await db.booking.findUnique({
           where: { sessionId_userId: { sessionId: session.id, userId: m.id } },
         });
-        if (alreadyBooked) continue;
+        if (already) continue;
+
+        const isNoShow = seed % 12 === 0;
         await db.booking.create({
           data: {
             sessionId: session.id,
             userId: m.id,
-            status: i % 8 === 0 ? "NO_SHOW" : "CONFIRMED",
+            status: isNoShow ? "NO_SHOW" : "CONFIRMED",
             creditsUsed: 1,
           },
         });
-        if (i % 8 !== 0) {
+        if (!isNoShow) {
           await db.checkIn.upsert({
             where: { sessionId_userId: { sessionId: session.id, userId: m.id } },
             update: {},
@@ -263,31 +343,57 @@ async function main() {
       }
     }
 
-    // Quelques réservations sur les prochains cours
-    const upcomingSessions = createdSessions.filter((s) => s.startTime > now).slice(0, 10);
+    const upcomingSessions = createdSessions
+      .filter((s) => s.startTime > now)
+      .slice(0, 60);
+
     for (let i = 0; i < upcomingSessions.length; i++) {
       const session = upcomingSessions[i];
-      const membersToBook = membres.slice(0, 2 + (i % 4));
+      const seed = i * 5 + 2;
+      const count = 1 + (seed % 5);
+      const membersToBook = membres.slice(0, Math.min(count, membres.length));
+
       for (const m of membersToBook) {
-        const alreadyBooked = await db.booking.findUnique({
+        const already = await db.booking.findUnique({
           where: { sessionId_userId: { sessionId: session.id, userId: m.id } },
         });
-        if (!alreadyBooked) {
+        if (!already) {
           await db.booking.create({
             data: { sessionId: session.id, userId: m.id, status: "CONFIRMED", creditsUsed: 1 },
           });
         }
       }
+
+      if (seed % 8 === 0) {
+        const waitlisters = membres.slice(5, 7);
+        for (let w = 0; w < waitlisters.length; w++) {
+          const already = await db.booking.findUnique({
+            where: { sessionId_userId: { sessionId: session.id, userId: waitlisters[w].id } },
+          });
+          if (!already) {
+            await db.booking.create({
+              data: {
+                sessionId: session.id,
+                userId: waitlisters[w].id,
+                status: "WAITLISTED",
+                creditsUsed: 0,
+                waitlistPos: w + 1,
+              },
+            });
+          }
+        }
+      }
     }
 
-    console.log(`✓ ${createdSessions.length} séances créées (7 passés + 14 à venir)`);
+    console.log(`✓ ${createdSessions.length} séances créées (-14j → +60j)`);
+    console.log(`✓ ${pastSessions.length} séances passées avec réservations`);
   }
 
-  console.log(`\n✓ Admin     : admin@ilannatek.fr / admin1234`);
-  console.log(`✓ Membre    : sasha.dupont@test.fr / member1234`);
-  console.log(`✓ Instructeur: camille@ilannatek.fr / instructor1234`);
-  console.log(`✓ ${membres.length} membres test, ${instructors.length} instructeurs`);
-  console.log(`✓ ${classTypes.length} types de cours, ${plans.length} plans`);
+  console.log(`\n✓ Admin        : admin@ilannatek.fr / admin1234`);
+  console.log(`✓ Membre       : sasha.dupont@test.fr / member1234`);
+  console.log(`✓ Instructeur  : camille@ilannatek.fr / instructor1234`);
+  console.log(`✓ ${membres.length} membres, ${instructors.length} instructeurs, ${classTypes.length} types de cours`);
+  console.log(`✓ ${plans.length} plans tarifaires`);
 }
 
 main()

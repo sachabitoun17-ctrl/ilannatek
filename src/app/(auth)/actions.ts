@@ -55,7 +55,6 @@ export async function registerAction(
   });
   if (existing) return { error: "Un compte existe déjà avec cet email" };
 
-  // Validate invite token if provided
   const rawInviteToken = formData.get("inviteToken");
   const inviteToken = typeof rawInviteToken === "string" && rawInviteToken.trim() ? rawInviteToken.trim() : null;
   const now = new Date();
@@ -100,9 +99,7 @@ export async function registerAction(
     });
   }
 
-  // Process invite: grant credit to new user, grant credit to inviter, mark invite used
   if (validInvite) {
-    // Credit for new user
     await db.transaction.create({
       data: {
         userId: user.id,
@@ -113,7 +110,6 @@ export async function registerAction(
       },
     });
 
-    // Credit for inviter
     await db.user.update({
       where: { id: validInvite.fromUserId },
       data: { creditsBalance: { increment: validInvite.creditsGranted } },
@@ -128,7 +124,6 @@ export async function registerAction(
       },
     });
 
-    // Mark invite used
     await db.friendInvite.update({
       where: { id: validInvite.id },
       data: { usedAt: now },
@@ -142,7 +137,6 @@ export async function registerAction(
     entityId: user.id,
   });
 
-  // fire-and-forget welcome email
   void sendEmail({
     to: user.email,
     ...emailTemplates.welcome(user.firstName),
@@ -155,7 +149,7 @@ export async function registerAction(
     v: user.sessionVersion,
   });
   await setSessionCookie(token);
-  redirect("/schedule");
+  redirect("/welcome");
 }
 
 const loginSchema = z.object({
@@ -191,7 +185,6 @@ export async function loginAction(
 
   const user = await db.user.findUnique({ where: { email } });
 
-  // Always perform a hash compare to avoid timing oracle on user existence
   const ok = user
     ? await verifyPassword(parsed.data.password, user.passwordHash)
     : await verifyPassword(parsed.data.password, "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalid");
