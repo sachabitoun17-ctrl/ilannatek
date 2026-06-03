@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
+import { useSearchParams } from "next/navigation";
 import { registerAction } from "../actions";
 
 function SubmitButton() {
@@ -15,6 +16,9 @@ function SubmitButton() {
 
 export default function RegisterPage() {
   const [state, action] = useFormState(registerAction, null);
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="w-full max-w-sm">
@@ -26,7 +30,16 @@ export default function RegisterPage() {
           </p>
         </div>
 
+        {inviteToken && (
+          <div className="mb-5 bg-cream-50 border border-accent-200 px-4 py-3 text-sm text-accent-600">
+            Invitation détectée — vous recevrez <strong>1 crédit offert</strong> à l'inscription !
+          </div>
+        )}
+
         <form action={action} className="space-y-5">
+          {inviteToken && (
+            <input type="hidden" name="inviteToken" value={inviteToken} />
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Prénom</label>

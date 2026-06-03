@@ -340,6 +340,54 @@ export const emailTemplates = {
        <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/schedule">Voir le planning →</a></p>`
     ),
   }),
+
+  friendInvite: (args: { fromName: string; toEmail: string; acceptUrl: string }) => ({
+    subject: `${args.fromName} vous invite à rejoindre Ilannatek`,
+    html: wrap(
+      `Vous êtes invité·e !`,
+      `<p>Bonjour,</p>
+       <p><strong>${args.fromName}</strong> vous invite à rejoindre le studio Ilannatek.</p>
+       <div class="highlight">
+         <strong>Offre spéciale :</strong> créez votre compte via ce lien et recevez <strong>1 crédit offert</strong> pour votre premier cours.<br/>
+         <span class="muted">${args.fromName} en recevra un aussi — une façon de venir en duo !</span>
+       </div>
+       <p style="margin-top:28px;text-align:center">
+         <a class="btn btn-accent" href="${args.acceptUrl}" style="font-size:13px;padding:16px 36px">Créer mon compte et obtenir mon crédit →</a>
+       </p>
+       <hr class="divider"/>
+       <p class="muted">Cette invitation est valable 30 jours. Si vous avez déjà un compte, connectez-vous directement.</p>`
+    ),
+  }),
+
+  waitlistSpotAvailable: (args: {
+    firstName: string;
+    className: string;
+    startTime: Date;
+    location: string;
+    acceptUrl: string;
+  }) => ({
+    subject: `Une place s'est libérée — ${args.className}`,
+    html: wrap(
+      `Bonne nouvelle !`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Une place vient de se libérer pour <strong>${args.className}</strong>.</p>
+       <div class="highlight">
+         Vous avez <strong>30 minutes</strong> pour confirmer votre présence.<br/>
+         Passé ce délai, la place sera proposée au membre suivant.
+       </div>
+       <div style="margin:20px 0">
+         <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
+         <div class="detail-row"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong></div>
+         <div class="detail-row"><span class="detail-label">Heure</span><strong>${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
+         <div class="detail-row" style="border:none"><span class="detail-label">Studio</span><strong>${args.location}</strong></div>
+       </div>
+       <p style="margin-top:28px;text-align:center">
+         <a class="btn btn-accent" href="${args.acceptUrl}" style="font-size:13px;padding:16px 36px">Confirmer ma réservation →</a>
+       </p>
+       <hr class="divider"/>
+       <p class="muted">Si vous ne confirmez pas dans les 30 minutes, votre place sera automatiquement libérée et proposée au membre suivant sur la liste d'attente.</p>`
+    ),
+  }),
 };
 
 function siteUrl() {

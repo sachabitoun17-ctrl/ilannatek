@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCachedClassTypes, getCachedLocations } from "@/lib/cached";
 import { addDays, endOfDay, formatDate, startOfDay } from "@/lib/utils";
 import ScheduleClient from "./ScheduleClient";
+import PourVousStrip from "./PourVousStrip";
 
 type SearchParams = { date?: string; location?: string; view?: string };
 
@@ -82,6 +83,60 @@ export default async function SchedulePage({
           status: mine.status,
           waitlistPos: mine.waitlistPos,
         });
+    }
+  }
+
+  // ── "Pour vous" — top 2 class types in last 60 days ─────────────────────────
+  type PourVousSession = {
+    id: string;
+    startTime: string;
+    classTypeName: string;
+    classTypeColor: string;
+    instructorFirstName: string;
+    myBooking: { id: string; status: string; waitlistPos: number | null } | null;
+  };
+
+  let pourVousSessions: PourVousSession[] = [];
+  let pourVousLabels: string[] = [];
+
+  if (user) {
+    const since60 = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    const recentBookings = await db.booking.findMany({
+      where: {
+        userId: user.id,
+        status: "CONFIRMED",
+        session: { startTime: { gte: since60 } },
+      },
+      include: { session: { select: { classTypeId: true } } },
+    });
+
+    // Count by classTypeId
+    const counts = new Map<string, number>();
+    for (const b of recentBookings) {
+      const id = b.session.classTypeId;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+
+    // Top 2 class type IDs
+    const top2 = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([id]) => id);
+
+    if (top2.length > 0) {
+      // Filter current-view sessions that match top 2 class types
+      const matching = sessions.filter((s) => top2.includes(s.classType.id));
+      // Build labels from classType names in top-2 order
+      const nameMap = new Map(classTypes.map((ct) => [ct.id, ct.name]));
+      pourVousLabels = top2.map((id) => nameMap.get(id) ?? "").filter(Boolean);
+      pourVousSessions = matching.map((s) => ({
+        id: s.id,
+        startTime: s.startTime.toISOString(),
+        classTypeName: s.classType.name,
+        classTypeColor: s.classType.color,
+        instructorFirstName: s.instructor.firstName,
+        myBooking: myBookingsMap.get(s.id) ?? null,
+      }));
     }
   }
 
@@ -247,6 +302,14 @@ export default async function SchedulePage({
             pour réserver vos cours.
           </p>
         </div>
+      )}
+
+      {user && pourVousSessions.length > 0 && (
+        <PourVousStrip
+          sessions={pourVousSessions}
+          labels={pourVousLabels}
+          userCredits={user.creditsBalance}
+        />
       )}
 
       <ScheduleClient

@@ -7,6 +7,36 @@ import { formatPrice } from "@/lib/utils";
 import { FreezeButton, UnfreezeButton } from "./SubscriptionActions";
 import AccountTabs from "./AccountTabs";
 
+// ─── Streak helpers ───────────────────────────────────────────────────────────
+
+/** Returns the Monday of the ISO week containing `d` */
+function weekStart(d: Date): Date {
+  const day = new Date(d);
+  const dow = day.getDay(); // 0 = Sunday
+  const diff = (dow + 6) % 7; // offset to Monday
+  day.setDate(day.getDate() - diff);
+  day.setHours(0, 0, 0, 0);
+  return day;
+}
+
+function computeStreak(confirmedBookings: { startTime: Date }[]): number {
+  // Build a set of week-start timestamps (Monday) that have at least 1 course
+  const weeksWithCourse = new Set<number>();
+  for (const b of confirmedBookings) {
+    weeksWithCourse.add(weekStart(b.startTime).getTime());
+  }
+
+  let streak = 0;
+  const now = new Date();
+  // Start from the current week and walk backwards
+  let cursor = weekStart(now);
+  while (weeksWithCourse.has(cursor.getTime())) {
+    streak++;
+    cursor = new Date(cursor.getTime() - 7 * 24 * 60 * 60 * 1000);
+  }
+  return streak;
+}
+
 function googleCalLink(booking: {
   classTypeName: string;
   startTime: Date;
@@ -36,7 +66,9 @@ export default async function AccountPage() {
   const checkInWindowOpen = new Date(now.getTime() - 90 * 60000); // -90min
   const checkInWindowClose = new Date(now.getTime() + 30 * 60000); // +30min
 
-  const [upcomingBookings, pastBookings, subs, transactions] = await Promise.all([
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [upcomingBookings, pastBookings, subs, transactions, allConfirmedBookings] = await Promise.all([
     db.booking.findMany({
       where: {
         userId: user.id,
@@ -84,10 +116,25 @@ export default async function AccountPage() {
       orderBy: { createdAt: "desc" },
       take: 25,
     }),
+    db.booking.findMany({
+      where: { userId: user.id, status: "CONFIRMED" },
+      include: { session: { select: { startTime: true } } },
+      orderBy: { session: { startTime: "desc" } },
+    }),
   ]);
 
   const nextBooking = upcomingBookings[0] ?? null;
   const activeSub = subs.find((s) => s.status === "ACTIVE");
+
+  // Stats
+  const coursThisMois = allConfirmedBookings.filter(
+    (b) => b.session.startTime >= monthStart && b.session.startTime <= now
+  ).length;
+  const totalCours = allConfirmedBookings.length;
+  const serie = computeStreak(allConfirmedBookings.map((b) => ({ startTime: b.session.startTime })));
+
+  // Freeze state
+  const isFrozen = !!(user.creditsFrozenUntil && user.creditsFrozenUntil > now);
 
   // Check-in window open for a booking?
   const checkInNow = upcomingBookings.find((b) => {
@@ -127,8 +174,25 @@ export default async function AccountPage() {
             <Link href="/account/profile" className="btn-secondary text-sm">
               Mon profil
             </Link>
+            <Link href="/invite" className="btn-secondary text-sm">
+              Inviter un ami
+            </Link>
           </div>
         </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-stretch divide-x divide-stone2-200 border border-stone2-200 bg-white">
+        {[
+          { value: coursThisMois, label: "Cours ce mois" },
+          { value: totalCours, label: "Total cours" },
+          { value: serie, label: "Série" },
+        ].map(({ value, label }) => (
+          <div key={label} className="flex-1 flex flex-col items-center justify-center py-5 px-4 text-center">
+            <span className="font-serif text-4xl font-medium text-brand-600 leading-none">{value}</span>
+            <span className="text-[9px] uppercase tracking-[0.2em] text-stone2-400 mt-1.5">{label}</span>
+          </div>
+        ))}
       </div>
 
       {/* Check-in alert (Mariana Tek style) */}
@@ -164,8 +228,10 @@ export default async function AccountPage() {
         </div>
       )}
 
-      {/* Tabs: À venir | Historique | Abonnements | Transactions */}
+      {/* Tabs: À venir | Historique | Abonnements | Achats | Pause */}
       <AccountTabs
+        isFrozen={isFrozen}
+        creditsFrozenUntil={user.creditsFrozenUntil?.toISOString() ?? null}
         upcoming={upcomingBookings.map((b) => ({
           id: b.id,
           sessionId: b.session.id,

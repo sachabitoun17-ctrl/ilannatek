@@ -85,6 +85,7 @@ export const getCurrentUser = cache(async function getCurrentUser() {
       sessionVersion: true,
       active: true,
       banned: true,
+      creditsFrozenUntil: true,
     },
   });
   if (!user) return null;

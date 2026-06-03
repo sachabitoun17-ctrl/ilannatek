@@ -55,6 +55,28 @@ export async function registerAction(
   });
   if (existing) return { error: "Un compte existe déjà avec cet email" };
 
+  // Validate invite token if provided
+  const rawInviteToken = formData.get("inviteToken");
+  const inviteToken = typeof rawInviteToken === "string" && rawInviteToken.trim() ? rawInviteToken.trim() : null;
+  const now = new Date();
+
+  let validInvite: {
+    id: string;
+    fromUserId: string;
+    creditsGranted: number;
+    from: { firstName: string };
+  } | null = null;
+
+  if (inviteToken) {
+    const invite = await db.friendInvite.findUnique({
+      where: { token: inviteToken },
+      include: { from: { select: { firstName: true } } },
+    });
+    if (invite && !invite.usedAt && invite.expiresAt > now) {
+      validInvite = invite;
+    }
+  }
+
   const user = await db.user.create({
     data: {
       email: parsed.data.email.toLowerCase(),
@@ -62,7 +84,7 @@ export async function registerAction(
       firstName: parsed.data.firstName.trim(),
       lastName: parsed.data.lastName.trim(),
       phone: parsed.data.phone?.trim(),
-      creditsBalance: settings.welcomeCredits,
+      creditsBalance: settings.welcomeCredits + (validInvite ? validInvite.creditsGranted : 0),
     },
   });
 
@@ -75,6 +97,41 @@ export async function registerAction(
         description: "Crédits de bienvenue",
         paymentStatus: "FREE",
       },
+    });
+  }
+
+  // Process invite: grant credit to new user, grant credit to inviter, mark invite used
+  if (validInvite) {
+    // Credit for new user
+    await db.transaction.create({
+      data: {
+        userId: user.id,
+        type: "PROMO_BONUS",
+        creditsDelta: validInvite.creditsGranted,
+        description: `Crédit invitation de ${validInvite.from.firstName}`,
+        paymentStatus: "FREE",
+      },
+    });
+
+    // Credit for inviter
+    await db.user.update({
+      where: { id: validInvite.fromUserId },
+      data: { creditsBalance: { increment: validInvite.creditsGranted } },
+    });
+    await db.transaction.create({
+      data: {
+        userId: validInvite.fromUserId,
+        type: "PROMO_BONUS",
+        creditsDelta: validInvite.creditsGranted,
+        description: `Crédit parrainage — ${user.firstName} ${user.lastName} a rejoint le studio`,
+        paymentStatus: "FREE",
+      },
+    });
+
+    // Mark invite used
+    await db.friendInvite.update({
+      where: { id: validInvite.id },
+      data: { usedAt: now },
     });
   }
 

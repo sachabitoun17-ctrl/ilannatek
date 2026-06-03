@@ -97,6 +97,20 @@ function sampleFor(key: TemplateKey, firstName: string) {
         startTime: new Date(Date.now() + 86400000),
         creditsRefunded: 1,
       });
+    case "waitlistSpotAvailable":
+      return emailTemplates.waitlistSpotAvailable({
+        firstName,
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 3600000 * 2),
+        location: "Paris 11ème",
+        acceptUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/account/waitlist/accept/preview`,
+      });
+    case "friendInvite":
+      return emailTemplates.friendInvite({
+        fromName: firstName,
+        toEmail: "ami@exemple.fr",
+        acceptUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/invite/preview`,
+      });
   }
 }
 
@@ -111,6 +125,7 @@ export async function sendTestEmailAction(formData: FormData) {
     return { ok: false as const, error: "Template inconnu" };
   }
   const tpl = sampleFor(key, user.firstName);
+  if (!tpl) return { ok: false as const, error: "Template introuvable" };
   try {
     await sendEmail({ to, subject: `[TEST] ${tpl.subject}`, html: tpl.html });
     await audit({
