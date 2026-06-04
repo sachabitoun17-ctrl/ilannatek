@@ -10,3 +10,4 @@ prisma/dev.db-journal
 next-env.d.ts
 tsconfig.tsbuildinfo
 .vercel
+.claude/
