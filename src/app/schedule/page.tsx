@@ -86,7 +86,6 @@ export default async function SchedulePage({
     }
   }
 
-  // ── "Pour vous" — top 2 class types in last 60 days ─────────────────────────
   type PourVousSession = {
     id: string;
     startTime: string;
@@ -110,23 +109,19 @@ export default async function SchedulePage({
       include: { session: { select: { classTypeId: true } } },
     });
 
-    // Count by classTypeId
     const counts = new Map<string, number>();
     for (const b of recentBookings) {
       const id = b.session.classTypeId;
       counts.set(id, (counts.get(id) ?? 0) + 1);
     }
 
-    // Top 2 class type IDs
     const top2 = [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 2)
       .map(([id]) => id);
 
     if (top2.length > 0) {
-      // Filter current-view sessions that match top 2 class types
       const matching = sessions.filter((s) => top2.includes(s.classType.id));
-      // Build labels from classType names in top-2 order
       const nameMap = new Map(classTypes.map((ct) => [ct.id, ct.name]));
       pourVousLabels = top2.map((id) => nameMap.get(id) ?? "").filter(Boolean);
       pourVousSessions = matching.map((s) => ({
@@ -208,28 +203,30 @@ export default async function SchedulePage({
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="space-y-6">
+
+      {/* Page header */}
+      <div className="flex flex-wrap items-end justify-between gap-4 pb-2">
         <div>
           <p className="section-title">Studio Boutique</p>
-          <h1 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 mt-1">
+          <h1 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 mt-1 leading-tight">
             Planning
           </h1>
           <p className="text-sm text-stone2-500 capitalize mt-1">{headerLabel}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* View toggle — hide "Grille" on mobile */}
-          <div className="inline-flex border border-brand-600 bg-cream-50">
+          {/* View toggle */}
+          <div className="inline-flex bg-white border border-stone2-200">
             {(["day", "week", "grid"] as const).map((v) => (
               <Link
                 key={v}
                 href={buildHref(v)}
-                className={`px-4 min-h-[44px] flex items-center text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                className={`px-4 min-h-[40px] flex items-center text-[10px] uppercase tracking-[0.18em] transition-colors border-r border-stone2-200 last:border-r-0 ${
                   v === "grid" ? "hidden sm:flex" : ""
                 } ${
                   view === v
                     ? "bg-brand-600 text-cream-50"
-                    : "text-brand-600 hover:bg-cream-100"
+                    : "text-stone2-600 hover:bg-cream-50 hover:text-brand-600"
                 }`}
               >
                 {v === "day" ? "Jour" : v === "week" ? "Semaine" : "Grille"}
@@ -242,7 +239,7 @@ export default async function SchedulePage({
               <select
                 name="location"
                 defaultValue={locationFilter ?? ""}
-                className="input text-sm"
+                className="input text-sm h-10 py-0"
               >
                 <option value="">Tous les studios</option>
                 {locations.map((l) => (
@@ -253,54 +250,63 @@ export default async function SchedulePage({
               </select>
               <input type="hidden" name="date" value={searchParams.date ?? ""} />
               <input type="hidden" name="view" value={view} />
-              <button className="btn-secondary py-2">Filtrer</button>
+              <button className="btn-secondary h-10 py-0 text-xs">Filtrer</button>
             </form>
           )}
         </div>
       </div>
 
-      {/* Day strip */}
-      <div className="flex items-center justify-between gap-2 bg-white border border-stone2-200 p-1.5">
+      {/* Date navigation strip */}
+      <div className="bg-white border border-stone2-200 flex items-stretch">
         <Link
           href={`/schedule?view=${view}&date=${prevDate}${locationFilter ? `&location=${locationFilter}` : ""}`}
-          className="btn-ghost px-4 min-h-[44px] flex items-center"
+          className="flex items-center justify-center px-4 min-h-[60px] text-stone2-500 hover:text-brand-600 hover:bg-cream-50 transition-colors border-r border-stone2-200 text-lg"
+          aria-label="Semaine précédente"
         >
           ←
         </Link>
-        <div className="flex gap-0.5 overflow-x-auto">
+        <div className="flex flex-1 overflow-x-auto">
           {strip.map((d) => (
             <Link
               key={d.iso}
               href={`/schedule?view=${view}&date=${d.iso}${locationFilter ? `&location=${locationFilter}` : ""}`}
-              className={`flex flex-col items-center px-3 py-2 min-w-[48px] min-h-[44px] justify-center transition-colors ${
+              className={`flex flex-col items-center justify-center flex-1 min-w-[52px] min-h-[60px] py-2.5 gap-0.5 transition-colors ${
                 d.isActive
                   ? "bg-brand-600 text-cream-50"
                   : d.isToday
-                  ? "bg-accent-100 text-brand-600"
-                  : "text-stone2-600 hover:bg-cream-100"
+                  ? "bg-accent-50 text-brand-600 border-b-2 border-accent-400"
+                  : "text-stone2-500 hover:bg-cream-50 hover:text-brand-600"
               }`}
             >
-              <span className="text-[9px] uppercase tracking-widest">{d.label}</span>
-              <span className="font-serif text-xl leading-tight">{d.day}</span>
+              <span className="text-[9px] uppercase tracking-widest font-medium capitalize">{d.label}</span>
+              <span className={`font-serif text-2xl leading-none ${d.isActive ? "text-cream-50" : "text-brand-600"}`}>
+                {d.day}
+              </span>
             </Link>
           ))}
         </div>
         <Link
           href={`/schedule?view=${view}&date=${nextDate}${locationFilter ? `&location=${locationFilter}` : ""}`}
-          className="btn-ghost px-4 min-h-[44px] flex items-center"
+          className="flex items-center justify-center px-4 min-h-[60px] text-stone2-500 hover:text-brand-600 hover:bg-cream-50 transition-colors border-l border-stone2-200 text-lg"
+          aria-label="Semaine suivante"
         >
           →
         </Link>
       </div>
 
       {!user && (
-        <div className="bg-cream-100 border-l-4 border-accent-500 px-5 py-3">
-          <p className="text-sm text-brand-600">
-            <Link href="/login" className="font-semibold underline">Connectez-vous</Link>{" "}
-            ou{" "}
-            <Link href="/register" className="font-semibold underline">créez un compte</Link>{" "}
-            pour réserver vos cours.
+        <div className="bg-brand-600 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
+          <p className="text-sm text-cream-50">
+            Connectez-vous pour réserver vos cours.
           </p>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="text-[11px] uppercase tracking-[0.18em] text-accent-300 hover:text-cream-50 transition-colors font-medium">
+              Se connecter
+            </Link>
+            <Link href="/register" className="text-[11px] uppercase tracking-[0.18em] px-4 py-2 bg-cream-50 text-brand-600 hover:bg-accent-200 transition-colors font-semibold">
+              Créer un compte
+            </Link>
+          </div>
         </div>
       )}
 
