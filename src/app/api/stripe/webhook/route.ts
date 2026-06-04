@@ -43,8 +43,28 @@ export async function POST(req: NextRequest) {
       const promoCodeId = session.metadata?.promoCodeId || null;
       const bonusCredits = parseInt(session.metadata?.bonusCredits ?? "0", 10) || 0;
       if (!userId || !planId) {
+        console.error("Webhook checkout.session.completed: missing metadata", { sessionId: session.id, userId, planId });
+        return NextResponse.json({ error: "missing metadata" }, { status: 400 });
+      }
+
+      const existing = await db.transaction.findUnique({ where: { stripeRef: session.id } });
+      if (existing?.paymentStatus === "PAID") {
         return NextResponse.json({ received: true });
       }
+
+      const plan = await db.plan.findUnique({ where: { id: planId } });
+      if (plan && session.amount_total != null) {
+        const diff = Math.abs((session.amount_total) - plan.priceCents);
+        if (diff > 1) {
+          console.warn("Webhook amount mismatch", {
+            sessionId: session.id,
+            webhookAmount: session.amount_total,
+            planPriceCents: plan.priceCents,
+            diff,
+          });
+        }
+      }
+
       const result = await grantPlanPurchase({
         userId,
         planId,
@@ -56,12 +76,6 @@ export async function POST(req: NextRequest) {
       if (!result.ok) {
         console.error("Webhook grant failed:", result.error);
         return NextResponse.json({ error: result.error }, { status: 500 });
-      }
-      if (session.subscription) {
-        await db.transaction.update({
-          where: { stripeRef: session.id },
-          data: { description: { set: undefined } },
-        }).catch(() => {});
       }
       break;
     }
@@ -98,7 +112,6 @@ export async function POST(req: NextRequest) {
       break;
     }
     default:
-      // ignore other events
       break;
   }
 

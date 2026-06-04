@@ -18,7 +18,7 @@ export async function resetPasswordAction(formData: FormData) {
   }
 
   if (password.length < 8) {
-    redirect(`/reset-password?token=${token}&error=8+caractères+minimum`);
+    redirect(`/reset-password?token=${token}&error=8+caract%C3%A8res+minimum`);
   }
 
   const record = await db.passwordResetToken.findUnique({ where: { token } });
@@ -31,12 +31,10 @@ export async function resetPasswordAction(formData: FormData) {
   await db.$transaction([
     db.user.update({
       where: { id: record.userId },
-      // bump sessionVersion to invalidate all existing JWTs
       data: { passwordHash, sessionVersion: { increment: 1 } },
     }),
-    db.passwordResetToken.update({
-      where: { id: record.id },
-      data: { usedAt: new Date() },
+    db.passwordResetToken.deleteMany({
+      where: { userId: record.userId },
     }),
   ]);
 
