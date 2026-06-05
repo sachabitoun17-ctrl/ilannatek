@@ -8,7 +8,12 @@ export default function ForgotPasswordPage({
   if (searchParams.sent) {
     return (
       <div className="max-w-sm mx-auto mt-24 card text-center space-y-3">
-        <p className="text-4xl">📬</p>
+        <div className="w-12 h-12 mx-auto border border-stone2-200 flex items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-600">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+        </div>
         <h1 className="font-serif text-2xl font-medium text-brand-600">Email envoyé</h1>
         <p className="text-sm text-stone2-600">
           Si un compte existe avec cette adresse, vous recevrez un lien de
