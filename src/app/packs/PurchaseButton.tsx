@@ -44,7 +44,7 @@ export default function PurchaseButton({
       <button
         type="button"
         onClick={() => setShowPromo((v) => !v)}
-        className="text-xs text-gray-500 hover:text-brand-600"
+        className="text-xs text-stone2-500 hover:text-brand-600"
       >
         {showPromo ? "Masquer le code promo" : "J'ai un code promo"}
       </button>

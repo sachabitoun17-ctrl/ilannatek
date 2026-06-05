@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { requireUser, hashPassword, verifyPassword, clearSessionCookie } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
 export async function updateProfileAction(formData: FormData) {
@@ -72,4 +72,36 @@ export async function changePasswordAction(formData: FormData) {
   void audit({ actorId: user.id, action: "CHANGE_PASSWORD", entity: "User", entityId: user.id });
 
   redirect("/account/profile?success=Mot+de+passe+mis+à+jour");
+}
+
+export async function deleteAccountAction(formData: FormData) {
+  const user = await requireUser();
+
+  const confirm = formData.get("confirm")?.toString();
+  if (confirm !== "SUPPRIMER") {
+    redirect("/account/profile?error=Tapez+SUPPRIMER+pour+confirmer");
+  }
+
+  const anonymizedEmail = `deleted+${user.id}@ilannatek-deleted.local`;
+
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      email: anonymizedEmail,
+      firstName: "Compte",
+      lastName: "Supprimé",
+      phone: null,
+      passwordHash: "",
+      stripeCustomerId: null,
+      active: false,
+      sessionVersion: { increment: 1 },
+    },
+  });
+
+  await db.passwordResetToken.deleteMany({ where: { userId: user.id } });
+
+  void audit({ actorId: user.id, action: "DELETE_ACCOUNT", entity: "User", entityId: user.id });
+
+  await clearSessionCookie();
+  redirect("/");
 }

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { updateProfileAction, changePasswordAction } from "./actions";
+import { updateProfileAction, changePasswordAction, deleteAccountAction } from "./actions";
 import { SubmitButton } from "./SubmitButton";
 
 export default async function ProfilePage({
@@ -82,6 +82,23 @@ export default async function ProfilePage({
         </div>
         <SubmitButton label="Changer le mot de passe" pendingLabel="Changement..." />
       </form>
+
+      <div className="border border-red-200 p-5 space-y-4">
+        <div>
+          <h2 className="font-semibold text-red-700">Supprimer mon compte</h2>
+          <p className="text-xs text-stone2-500 mt-1 leading-relaxed">
+            Cette action est irréversible. Vos données personnelles seront anonymisées conformément au RGPD.
+            Les données comptables (transactions) sont conservées 10 ans par obligation légale.
+          </p>
+        </div>
+        <form action={deleteAccountAction} className="space-y-3">
+          <div>
+            <label className="label text-red-700">Tapez <strong>SUPPRIMER</strong> pour confirmer</label>
+            <input name="confirm" required className="input border-red-200 focus:border-red-400" placeholder="SUPPRIMER" />
+          </div>
+          <SubmitButton label="Supprimer définitivement mon compte" pendingLabel="Suppression..." />
+        </form>
+      </div>
     </div>
   );
 }

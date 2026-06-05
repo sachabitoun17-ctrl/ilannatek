@@ -90,7 +90,7 @@ export default function BottomNav({ isLoggedIn }: { isLoggedIn: boolean }) {
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
-          <path d="M12 6v6l4 2" />
+          <path d="M12 8v1m0 6v1M9.5 9.5C9.5 8.67 10.67 8 12 8s2.5.67 2.5 1.5S13.33 11 12 11s-2.5.67-2.5 1.5S10.67 14.5 12 14.5s2.5-.67 2.5-1.5" />
         </svg>
         <span className="text-[9px] uppercase tracking-widest">Crédits</span>
       </Link>
