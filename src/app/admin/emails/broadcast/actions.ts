@@ -6,11 +6,15 @@ import { sendEmail } from "@/lib/email";
 import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
 
+function escHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function buildBroadcastHtml(subject: string, body: string, from: string, siteUrl: string): string {
   const paragraphs = body
     .split("\n\n")
     .filter(Boolean)
-    .map((p) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1C1C1A">${p.replace(/\n/g, "<br/>")}</p>`)
+    .map((p) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1C1C1A">${escHtml(p).replace(/\n/g, "<br/>")}</p>`)
     .join("");
 
   return `<!doctype html><html><head>
@@ -27,7 +31,7 @@ function buildBroadcastHtml(subject: string, body: string, from: string, siteUrl
   </head><body>
     <div class="card">
       <a class="logo" href="${siteUrl}">Ilannatek</a>
-      <h1 class="title">${subject}</h1>
+      <h1 class="title">${escHtml(subject)}</h1>
       ${paragraphs}
       <hr class="divider"/>
       <p style="font-size:12px;color:#6E6555">Vous recevez cet email en tant que membre du studio Ilannatek.</p>

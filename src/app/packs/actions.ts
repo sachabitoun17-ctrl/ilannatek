@@ -14,11 +14,12 @@ const schema = z.object({
 });
 
 function siteUrl() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured) return configured;
+  // Dev fallback only — NEXT_PUBLIC_SITE_URL must be set in production
   const h = headers();
-  const host = h.get("host");
-  const proto =
-    h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
-  return process.env.NEXT_PUBLIC_SITE_URL ?? `${proto}://${host}`;
+  const host = h.get("host") ?? "localhost:3000";
+  return host.startsWith("localhost") ? `http://${host}` : `https://${host}`;
 }
 
 export async function checkoutPlanAction(formData: FormData) {

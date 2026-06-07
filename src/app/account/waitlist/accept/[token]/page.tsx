@@ -38,8 +38,9 @@ async function confirmWaitlistBooking(formData: FormData) {
   const session = booking.session;
   const cost = session.classType.creditCost;
 
-  // Credit check is inside the transaction to prevent TOCTOU race (concurrent requests)
+  // All token validation + writes inside one transaction — prevents concurrent double-confirmation
   let insufficientCredits = false;
+  let alreadyUsed = false;
   await db.$transaction(async (tx) => {
     const freshUser = await tx.user.findUnique({ where: { id: user.id }, select: { creditsBalance: true } });
     if (!freshUser || freshUser.creditsBalance < cost) {
@@ -47,11 +48,16 @@ async function confirmWaitlistBooking(formData: FormData) {
       return;
     }
 
-    // Mark token used
-    await tx.waitlistToken.update({
-      where: { id: waitlistToken.id },
+    // Atomic: claim token only if not already used (concurrent requests both pass the pre-tx usedAt check)
+    const tokenClaim = await tx.waitlistToken.updateMany({
+      where: { id: waitlistToken.id, usedAt: null },
       data: { usedAt: new Date() },
     });
+
+    if (tokenClaim.count === 0) {
+      alreadyUsed = true;
+      return;
+    }
 
     // Promote booking to CONFIRMED
     await tx.booking.update({
@@ -95,6 +101,7 @@ async function confirmWaitlistBooking(formData: FormData) {
       }
     }
   });
+  if (alreadyUsed) redirect(`/account/waitlist/accept/${token}?error=already_used`);
   if (insufficientCredits) redirect(`/account/waitlist/accept/${token}?error=insufficient_credits`);
 
   // Audit

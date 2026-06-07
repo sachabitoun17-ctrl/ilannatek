@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 
 function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    // Still run a dummy comparison to avoid early exit timing leak
-    timingSafeEqual(Buffer.from(a), Buffer.from(a));
+  try {
+    // timingSafeEqual throws on length mismatch — constant-time for equal-length inputs
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
     return false;
   }
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 
 /**
