@@ -43,11 +43,12 @@ export async function GET(req: NextRequest) {
     try {
       await sendEmail({
         to: b.user.email,
-        ...emailTemplates.reminder({
+        ...emailTemplates.reminder2h({
           firstName: b.user.firstName,
           className: b.session.classType.name,
           startTime: b.session.startTime,
           location: b.session.location.name,
+          locationAddress: b.session.location.address ?? null,
         }),
       });
       await db.booking.update({

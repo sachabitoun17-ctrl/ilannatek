@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser, hashPassword, verifyPassword, clearSessionCookie } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
@@ -82,8 +83,13 @@ export async function deleteAccountAction(formData: FormData) {
     redirect("/account/profile?error=Tapez+SUPPRIMER+pour+confirmer");
   }
 
-  const anonymizedEmail = `deleted+${user.id}@ilannatek-deleted.local`;
+  // Send confirmation email BEFORE anonymizing (we need the real email)
+  void sendEmail({
+    to: user.email,
+    ...emailTemplates.accountDeleted({ firstName: user.firstName }),
+  });
 
+  const anonymizedEmail = `deleted+${user.id}@ilannatek-deleted.local`;
   await db.user.update({
     where: { id: user.id },
     data: {
@@ -100,7 +106,12 @@ export async function deleteAccountAction(formData: FormData) {
 
   await db.passwordResetToken.deleteMany({ where: { userId: user.id } });
 
-  void audit({ actorId: user.id, action: "DELETE_ACCOUNT", entity: "User", entityId: user.id });
+  void audit({
+    actorId: user.id,
+    action: "DELETE_ACCOUNT",
+    entity: "User",
+    entityId: user.id,
+  });
 
   await clearSessionCookie();
   redirect("/");

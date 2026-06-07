@@ -7,22 +7,28 @@ import { formatPrice } from "@/lib/utils";
 import { FreezeButton, UnfreezeButton } from "./SubscriptionActions";
 import AccountTabs from "./AccountTabs";
 
+// ─── Streak helpers ───────────────────────────────────────────────────────────
+
+/** Returns the Monday of the ISO week containing `d` */
 function weekStart(d: Date): Date {
   const day = new Date(d);
-  const dow = day.getDay();
-  const diff = (dow + 6) % 7;
+  const dow = day.getDay(); // 0 = Sunday
+  const diff = (dow + 6) % 7; // offset to Monday
   day.setDate(day.getDate() - diff);
   day.setHours(0, 0, 0, 0);
   return day;
 }
 
 function computeStreak(confirmedBookings: { startTime: Date }[]): number {
+  // Build a set of week-start timestamps (Monday) that have at least 1 course
   const weeksWithCourse = new Set<number>();
   for (const b of confirmedBookings) {
     weeksWithCourse.add(weekStart(b.startTime).getTime());
   }
+
   let streak = 0;
   const now = new Date();
+  // Start from the current week and walk backwards
   let cursor = weekStart(now);
   while (weeksWithCourse.has(cursor.getTime())) {
     streak++;
@@ -57,8 +63,9 @@ export default async function AccountPage() {
   if (!user) redirect("/login");
 
   const now = new Date();
-  const checkInWindowOpen = new Date(now.getTime() - 90 * 60000);
-  const checkInWindowClose = new Date(now.getTime() + 30 * 60000);
+  const checkInWindowOpen = new Date(now.getTime() - 90 * 60000); // -90min
+  const checkInWindowClose = new Date(now.getTime() + 30 * 60000); // +30min
+
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [upcomingBookings, pastBookings, subs, transactions, allConfirmedBookings] = await Promise.all([
@@ -119,14 +126,17 @@ export default async function AccountPage() {
   const nextBooking = upcomingBookings[0] ?? null;
   const activeSub = subs.find((s) => s.status === "ACTIVE");
 
+  // Stats
   const coursThisMois = allConfirmedBookings.filter(
     (b) => b.session.startTime >= monthStart && b.session.startTime <= now
   ).length;
   const totalCours = allConfirmedBookings.length;
   const serie = computeStreak(allConfirmedBookings.map((b) => ({ startTime: b.session.startTime })));
 
+  // Freeze state
   const isFrozen = !!(user.creditsFrozenUntil && user.creditsFrozenUntil > now);
 
+  // Check-in window open for a booking?
   const checkInNow = upcomingBookings.find((b) => {
     const st = b.session.startTime;
     return st >= checkInWindowOpen && st <= checkInWindowClose;
@@ -144,6 +154,7 @@ export default async function AccountPage() {
           <p className="text-sm text-stone2-500 mt-1">{user.email}</p>
         </div>
         <div className="flex items-start gap-4 flex-wrap">
+          {/* Credits block */}
           <div className="bg-brand-600 text-cream-50 px-7 py-5 text-center min-w-[140px]">
             <p className="section-title text-stone2-400 mb-1">Crédits</p>
             <p className="font-serif text-5xl font-medium">{user.creditsBalance}</p>
@@ -209,7 +220,7 @@ export default async function AccountPage() {
         ))}
       </div>
 
-      {/* Check-in alert */}
+      {/* Check-in alert (Mariana Tek style) */}
       {checkInNow && (
         <div className="bg-brand-600 text-cream-50 px-6 py-5 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -242,7 +253,7 @@ export default async function AccountPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs: À venir | Historique | Abonnements | Achats | Pause */}
       <AccountTabs
         isFrozen={isFrozen}
         creditsFrozenUntil={user.creditsFrozenUntil?.toISOString() ?? null}
@@ -302,6 +313,8 @@ export default async function AccountPage() {
   );
 }
 
+// ─── Next class hero ─────────────────────────────────────────────────────────
+
 function NextClassHero({ booking, now }: {
   booking: Awaited<ReturnType<typeof db.booking.findMany>>[0] & {
     session: {
@@ -328,7 +341,9 @@ function NextClassHero({ booking, now }: {
   else countdownLabel = `Dans ${minutesUntil} min`;
 
   return (
-    <div className="relative overflow-hidden bg-white border border-stone2-200 p-6 flex flex-wrap items-center gap-6">
+    <div
+      className="relative overflow-hidden bg-white border border-stone2-200 p-6 flex flex-wrap items-center gap-6"
+    >
       <div
         className="absolute left-0 top-0 bottom-0 w-1.5"
         style={{ backgroundColor: booking.session.classType.color }}

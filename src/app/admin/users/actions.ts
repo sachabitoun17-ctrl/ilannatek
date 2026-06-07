@@ -1,28 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 
-const adjustCreditsSchema = z.object({
-  id: z.string().min(1),
-  delta: z.coerce.number().int().refine((v) => v !== 0),
-});
-
-const setRoleSchema = z.object({
-  id: z.string().min(1),
-  role: z.enum(["USER", "INSTRUCTOR", "ADMIN"]),
-});
-
 export async function adjustCreditsAction(formData: FormData) {
   await requireAdmin();
-  const parsed = adjustCreditsSchema.safeParse({
-    id: formData.get("id"),
-    delta: formData.get("delta"),
-  });
-  if (!parsed.success) return;
-  const { id, delta } = parsed.data;
+  const id = formData.get("id")?.toString();
+  const delta = parseInt(formData.get("delta")?.toString() ?? "0", 10);
+  if (!id || Number.isNaN(delta) || delta === 0) return;
   await db.$transaction([
     db.user.update({
       where: { id },
@@ -41,14 +27,10 @@ export async function adjustCreditsAction(formData: FormData) {
 }
 
 export async function setRoleAction(formData: FormData) {
-  const admin = await requireAdmin();
-  const parsed = setRoleSchema.safeParse({
-    id: formData.get("id"),
-    role: formData.get("role"),
-  });
-  if (!parsed.success) return;
-  const { id, role } = parsed.data;
-  if (id === admin.id) return;
+  await requireAdmin();
+  const id = formData.get("id")?.toString();
+  const role = formData.get("role")?.toString();
+  if (!id || !role || !["USER", "INSTRUCTOR", "ADMIN"].includes(role)) return;
   await db.user.update({ where: { id }, data: { role } });
   revalidatePath("/admin/users");
 }

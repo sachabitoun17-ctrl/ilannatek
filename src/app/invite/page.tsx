@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { encodeRefCode } from "@/lib/referral";
 import InviteClient from "./InviteClient";
 
 export default async function InvitePage() {
@@ -34,19 +35,30 @@ export default async function InvitePage() {
     (inv) => !inv.usedAt && inv.expiresAt > now
   ).length;
 
+  const acceptedCount = invites.filter((inv) => inv.usedAt).length;
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const referralUrl = `${siteUrl}/register?ref=${encodeRefCode(user.id)}`;
+
   return (
     <div className="space-y-10 max-w-2xl">
       <div>
-        <p className="section-title">Mode Duo</p>
+        <p className="section-title">Parrainage</p>
         <h1 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 mt-1 leading-none">
           Inviter un ami
         </h1>
         <p className="text-sm text-stone2-500 mt-3 max-w-lg">
-          Invitez un ami à rejoindre le studio. Il recevra un crédit offert à l'inscription, et vous aussi !
+          Partagez votre lien ou envoyez une invitation par email.
+          À l&apos;inscription, votre ami reçoit <strong>1 crédit offert</strong> — et vous aussi.
         </p>
       </div>
 
-      <InviteClient invites={serialized} activeCount={activeCount} />
+      <InviteClient
+        invites={serialized}
+        activeCount={activeCount}
+        acceptedCount={acceptedCount}
+        referralUrl={referralUrl}
+      />
     </div>
   );
 }

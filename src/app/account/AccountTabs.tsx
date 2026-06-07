@@ -71,11 +71,11 @@ const TX_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, { label: string; classes: string }> = {
   CONFIRMED: { label: "Confirmée", classes: "bg-brand-600 text-cream-50" },
-  WAITLIST: { label: "Liste d'attente", classes: "bg-accent-100 text-accent-600 border border-accent-200" },
-  ATTENDED: { label: "Présent·e", classes: "bg-emerald-50 text-emerald-800 border border-emerald-200" },
-  NO_SHOW: { label: "Absent·e", classes: "bg-red-50 text-red-800 border border-red-200" },
-  CANCELLED: { label: "Annulée", classes: "bg-stone2-100 text-stone2-500 border border-stone2-200" },
-  LATE_CANCEL: { label: "Annul. tardive", classes: "bg-orange-50 text-orange-800 border border-orange-200" },
+  WAITLIST: { label: "Liste d'attente", classes: "bg-accent-100 text-accent-600" },
+  ATTENDED: { label: "✓ Présent·e", classes: "bg-green-100 text-green-800" },
+  NO_SHOW: { label: "Absent·e", classes: "bg-red-100 text-red-800" },
+  CANCELLED: { label: "Annulée", classes: "bg-stone2-100 text-stone2-500" },
+  LATE_CANCEL: { label: "Annulation tardive", classes: "bg-orange-100 text-orange-800" },
 };
 
 export default function AccountTabs({
@@ -98,37 +98,36 @@ export default function AccountTabs({
 
   return (
     <div>
-      {/* Tab bar — sticky on mobile */}
-      <div className="sticky top-0 z-20 bg-cream-50 -mx-4 px-4 md:mx-0 md:px-0 border-b border-stone2-200">
-        <div className="flex overflow-x-auto">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-3.5 text-[10px] uppercase tracking-[0.2em] shrink-0 transition-colors border-b-2 -mb-px font-medium ${
-                tab === t
-                  ? "border-brand-600 text-brand-600"
-                  : "border-transparent text-stone2-400 hover:text-brand-600"
-              }`}
-            >
-              {t}
-              {t === "À venir" && upcoming.length > 0 && (
-                <span className="ml-1.5 bg-brand-600 text-cream-50 text-[8px] px-1.5 py-0.5 rounded-full align-middle">
-                  {upcoming.length}
-                </span>
-              )}
-            </button>
-          ))}
-          <Link
-            href="/account/recurring"
-            className="px-4 py-3.5 text-[10px] uppercase tracking-[0.2em] shrink-0 transition-colors border-b-2 border-transparent text-stone2-400 hover:text-brand-600 font-medium"
+      {/* Tab bar */}
+      <div className="flex border-b border-stone2-200 overflow-x-auto">
+        {tabs.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-5 py-3 text-[11px] uppercase tracking-[0.2em] shrink-0 transition-colors border-b-2 -mb-px ${
+              tab === t
+                ? "border-brand-600 text-brand-600 font-semibold"
+                : "border-transparent text-stone2-500 hover:text-brand-600"
+            }`}
           >
-            Récurrents
-          </Link>
-        </div>
+            {t}
+            {t === "À venir" && upcoming.length > 0 && (
+              <span className="ml-1.5 bg-brand-600 text-cream-50 text-[9px] px-1.5 py-0.5 rounded-full">
+                {upcoming.length}
+              </span>
+            )}
+          </button>
+        ))}
+        {/* Navigation link to the recurring slots page */}
+        <Link
+          href="/account/recurring"
+          className="px-5 py-3 text-[11px] uppercase tracking-[0.2em] shrink-0 transition-colors border-b-2 border-transparent text-stone2-500 hover:text-brand-600"
+        >
+          Créneaux récurrents
+        </Link>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5">
         {tab === "À venir" && <UpcomingTab bookings={upcoming} />}
         {tab === "Historique" && <PastTab bookings={past} />}
         {tab === "Abonnements" && <SubsTab subs={subs} />}
@@ -140,6 +139,8 @@ export default function AccountTabs({
     </div>
   );
 }
+
+// ─── Upcoming tab ─────────────────────────────────────────────────────────────
 
 function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
   const router = useRouter();
@@ -159,9 +160,9 @@ function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
 
   if (bookings.length === 0)
     return (
-      <div className="text-center py-20 border border-dashed border-stone2-200">
-        <p className="font-serif text-3xl text-stone2-300 mb-3">Aucun cours à venir</p>
-        <p className="text-sm text-stone2-400 mb-8">Trouvez votre prochaine séance et réservez-la.</p>
+      <div className="text-center py-16">
+        <p className="font-serif text-2xl text-stone2-400">Aucun cours à venir</p>
+        <p className="text-sm text-stone2-500 mt-2 mb-6">Trouvez votre prochain cours et réservez-le.</p>
         <Link href="/schedule" className="btn-primary">Voir le planning</Link>
       </div>
     );
@@ -169,7 +170,7 @@ function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
   return (
     <div className="space-y-3">
       {message && (
-        <div className="bg-brand-600 text-cream-50 px-4 py-3 text-sm">{message}</div>
+        <p className="text-sm text-brand-600 border border-brand-600 px-4 py-2 bg-cream-100">{message}</p>
       )}
       {bookings.map((b) => {
         const start = new Date(b.startTime);
@@ -180,111 +181,89 @@ function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
         const isToday = start.toDateString() === now.toDateString();
         const isTomorrow = start.toDateString() === new Date(now.getTime() + 86400000).toDateString();
         const isCheckInOpen = msUntil <= 30 * 60000 && msUntil >= -90 * 60000;
-        const isSoon = msUntil > 0 && msUntil < 24 * 60 * 60 * 1000;
         const isConfirming = cancelingId === b.id;
 
         let dateLabel = "";
         if (isToday) dateLabel = "Aujourd'hui";
         else if (isTomorrow) dateLabel = "Demain";
-        else if (daysUntil < 7) dateLabel = `Dans ${daysUntil} j`;
-        else dateLabel = start.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+        else if (daysUntil < 7) dateLabel = `Dans ${daysUntil} jours`;
+        else dateLabel = start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
         return (
-          <div
-            key={b.id}
-            className="bg-white border border-stone2-100 hover:border-stone2-200 transition-colors overflow-hidden"
-          >
-            <div className="flex">
-              <div className="w-1 shrink-0" style={{ backgroundColor: b.classTypeColor }} />
-              <div className="flex-1 flex flex-wrap gap-4 p-5">
-                <div className="flex-1 min-w-[180px]">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="section-title mb-0 text-stone2-400">
-                      {dateLabel}
-                    </span>
-                    <span className="text-[10px] text-stone2-500">
-                      {start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                    {isSoon && !isCheckInOpen && (
-                      <span className="badge bg-amber-50 text-amber-700 border border-amber-200">
-                        Dans {hoursUntil}h
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="font-serif text-2xl text-brand-600 font-medium mb-1">
-                    {b.classTypeName}
-                  </h3>
-                  <p className="text-sm text-stone2-600">{b.instructorName}</p>
-                  <p className="text-xs text-stone2-400 mt-0.5">{b.locationName}</p>
-                  {b.sessionNotes && (
-                    <p className="text-xs text-stone2-500 mt-2 border-l-2 border-accent-300 pl-2 italic">
-                      {b.sessionNotes}
-                    </p>
-                  )}
+          <div key={b.id} className="bg-white border border-stone2-200 flex flex-wrap gap-4 p-5">
+            {/* Color strip */}
+            <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: b.classTypeColor }} />
+
+            {/* Info */}
+            <div className="flex-1 min-w-[200px]">
+              <p className="section-title mb-0.5">{dateLabel} · {start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</p>
+              <h3 className="font-serif text-xl text-brand-600">{b.classTypeName}</h3>
+              <p className="text-sm text-stone2-600">{b.instructorName}</p>
+              <p className="text-xs text-stone2-400">{b.locationName}</p>
+            </div>
+
+            {/* Right side */}
+            <div className="flex flex-col items-end justify-between gap-2 shrink-0">
+              <span className={`badge ${STATUS_LABELS[b.status]?.classes ?? "bg-stone2-100 text-stone2-600"}`}>
+                {b.status === "WAITLIST"
+                  ? `Liste d'attente · #${b.waitlistPos}`
+                  : STATUS_LABELS[b.status]?.label ?? b.status}
+              </span>
+
+              {b.checkedIn && (
+                <span className="text-[10px] uppercase tracking-widest text-green-700">✓ Pointé·e</span>
+              )}
+
+              {b.sessionNotes && (
+                <div className="w-full mt-1 text-xs text-stone2-500 border-l-2 border-accent-300 pl-2 italic">
+                  {b.sessionNotes}
                 </div>
-                <div className="flex flex-col items-end justify-between gap-3 shrink-0">
-                  <span className={`badge ${STATUS_LABELS[b.status]?.classes ?? "bg-stone2-100 text-stone2-600"}`}>
-                    {b.status === "WAITLIST"
-                      ? `Attente #${b.waitlistPos}`
-                      : STATUS_LABELS[b.status]?.label ?? b.status}
-                  </span>
-                  {b.checkedIn && (
-                    <span className="text-[10px] uppercase tracking-widest text-emerald-700 font-medium">
-                      Pointé·e
-                    </span>
-                  )}
-                  <div className="flex items-center gap-3">
-                    {isCheckInOpen && !b.checkedIn && (
-                      <Link
-                        href={`/check-in/${b.sessionId}`}
-                        className="text-[10px] uppercase tracking-widest bg-brand-600 text-cream-50 px-3 py-2 hover:bg-brand-700 transition-colors"
-                      >
-                        Check-in
-                      </Link>
-                    )}
-                    <BookingQRButton
-                      sessionId={b.sessionId}
-                      className={b.classTypeName}
-                      time={new Date(b.startTime).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
-                      location={b.locationName}
-                    />
-                    <a
-                      href={b.calLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] uppercase tracking-widest text-stone2-400 hover:text-brand-600 transition-colors"
-                      title="Ajouter au calendrier Google"
-                    >
-                      Cal.
-                    </a>
-                    {isConfirming ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => doCancel(b.id)}
-                          disabled={pending}
-                          className="text-[10px] uppercase tracking-widest text-red-800 font-semibold"
-                        >
-                          {pending ? "…" : "Confirmer"}
-                        </button>
-                        <button
-                          onClick={() => setCancelingId(null)}
-                          disabled={pending}
-                          className="text-[10px] uppercase tracking-widest text-stone2-400"
-                        >
-                          Garder
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setCancelingId(b.id)}
-                        disabled={pending}
-                        className="text-[10px] uppercase tracking-widest text-stone2-300 hover:text-red-700 transition-colors"
-                      >
-                        Annuler
-                      </button>
-                    )}
-                  </div>
-                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                {isCheckInOpen && !b.checkedIn && (
+                  <Link
+                    href={`/check-in/${b.sessionId}`}
+                    className="text-[10px] uppercase tracking-widest bg-brand-600 text-cream-50 px-3 py-1.5 hover:bg-brand-700"
+                  >
+                    S'enregistrer
+                  </Link>
+                )}
+
+                <BookingQRButton
+                  sessionId={b.sessionId}
+                  className={b.classTypeName}
+                  time={new Date(b.startTime).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+                  location={b.locationName}
+                />
+
+                <a
+                  href={b.calLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Ajouter au calendrier Google"
+                  className="text-stone2-400 hover:text-brand-600 text-lg leading-none"
+                >
+                  📅
+                </a>
+
+                {isConfirming ? (
+                  <>
+                    <button onClick={() => doCancel(b.id)} disabled={pending}
+                      className="text-[10px] uppercase tracking-widest text-red-800 font-medium">
+                      {pending ? "…" : "Confirmer"}
+                    </button>
+                    <button onClick={() => setCancelingId(null)} disabled={pending}
+                      className="text-[10px] uppercase tracking-widest text-stone2-400">
+                      Garder
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setCancelingId(b.id)} disabled={pending}
+                    className="text-[10px] uppercase tracking-widest text-stone2-400 hover:text-red-800">
+                    Annuler
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -294,15 +273,18 @@ function UpcomingTab({ bookings }: { bookings: UpcomingBooking[] }) {
   );
 }
 
+// ─── Past tab ─────────────────────────────────────────────────────────────────
+
 function PastTab({ bookings }: { bookings: PastBooking[] }) {
   if (bookings.length === 0)
     return (
-      <div className="text-center py-20 border border-dashed border-stone2-200">
-        <p className="font-serif text-3xl text-stone2-300 mb-2">Aucun cours passé</p>
-        <p className="text-sm text-stone2-400">Votre historique apparaître ici.</p>
+      <div className="text-center py-16">
+        <p className="font-serif text-2xl text-stone2-400">Aucun cours passé</p>
+        <p className="text-sm text-stone2-500 mt-2">Votre historique apparaîtra ici.</p>
       </div>
     );
 
+  // Group by month
   const grouped = bookings.reduce<Record<string, PastBooking[]>>((acc, b) => {
     const d = new Date(b.startTime);
     const key = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
@@ -312,39 +294,31 @@ function PastTab({ bookings }: { bookings: PastBooking[] }) {
   }, {});
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {Object.entries(grouped).map(([month, items]) => (
         <div key={month}>
-          <p className="section-title capitalize mb-3">{month}</p>
-          <div className="bg-white border border-stone2-100 divide-y divide-stone2-100">
+          <p className="section-title capitalize mb-2">{month}</p>
+          <div className="bg-white border border-stone2-200 divide-y divide-stone2-100">
             {items.map((b) => {
               const start = new Date(b.startTime);
               const statusInfo = STATUS_LABELS[b.status];
               return (
-                <div key={b.id} className="flex items-center gap-4 px-4 py-3.5">
-                  <div
-                    className="w-[3px] self-stretch shrink-0 rounded-full"
-                    style={{ backgroundColor: b.classTypeColor }}
-                  />
-                  <div className="w-14 shrink-0">
-                    <p className="text-sm text-brand-600 font-medium tabular-nums">
-                      {start.getDate()} {start.toLocaleDateString("fr-FR", { month: "short" })}
-                    </p>
-                    <p className="text-[10px] text-stone2-400">
-                      {start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                    </p>
+                <div key={b.id} className="flex flex-wrap items-center gap-4 px-5 py-3">
+                  <div className="w-0.5 self-stretch shrink-0" style={{ backgroundColor: b.classTypeColor }} />
+                  <div className="w-16 shrink-0 text-stone2-500 text-sm">
+                    {start.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-brand-600 text-sm truncate">{b.classTypeName}</p>
-                    <p className="text-xs text-stone2-400 truncate">{b.instructorName}</p>
+                  <div className="flex-1 min-w-[160px]">
+                    <p className="font-medium text-brand-600 text-sm">{b.classTypeName}</p>
+                    <p className="text-xs text-stone2-500">{b.instructorName} · {b.locationName}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     {b.feeApplied > 0 && (
-                      <span className="badge bg-orange-50 text-orange-700 border border-orange-200">
-                        -{b.feeApplied} cr.
+                      <span className="text-[10px] text-orange-600">
+                        -{b.feeApplied} cr. retenu{b.feeApplied > 1 ? "s" : ""}
                       </span>
                     )}
-                    <span className={`badge ${statusInfo?.classes ?? "bg-stone2-100 text-stone2-500"}`}>
+                    <span className={`badge text-[10px] ${statusInfo?.classes ?? "bg-stone2-100 text-stone2-500"}`}>
                       {statusInfo?.label ?? b.status}
                     </span>
                   </div>
@@ -358,6 +332,8 @@ function PastTab({ bookings }: { bookings: PastBooking[] }) {
   );
 }
 
+// ─── Subscriptions tab ───────────────────────────────────────────────────────
+
 function SubsTab({ subs }: { subs: Sub[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -367,19 +343,12 @@ function SubsTab({ subs }: { subs: Sub[] }) {
 
   if (subs.length === 0)
     return (
-      <div className="text-center py-20 border border-dashed border-stone2-200">
-        <p className="font-serif text-3xl text-stone2-300 mb-3">Aucun abonnement</p>
-        <p className="text-sm text-stone2-400 mb-8">Un accès illimité pour venir quand vous voulez.</p>
+      <div className="text-center py-16">
+        <p className="font-serif text-2xl text-stone2-400">Aucun abonnement</p>
+        <p className="text-sm text-stone2-500 mt-2 mb-6">Un accès illimité pour venir quand vous voulez.</p>
         <Link href="/subscriptions" className="btn-primary">Voir les offres</Link>
       </div>
     );
-
-  const statusMap: Record<string, { label: string; classes: string }> = {
-    ACTIVE: { label: "Actif", classes: "bg-emerald-50 text-emerald-800 border border-emerald-200" },
-    FROZEN: { label: "En pause", classes: "bg-accent-100 text-accent-600 border border-accent-200" },
-    CANCELLED: { label: "Annulé", classes: "bg-stone2-100 text-stone2-500 border border-stone2-200" },
-    EXPIRED: { label: "Expiré", classes: "bg-red-50 text-red-800 border border-red-200" },
-  };
 
   return (
     <div className="space-y-3">
@@ -387,39 +356,43 @@ function SubsTab({ subs }: { subs: Sub[] }) {
         const end = new Date(s.endDate);
         const now = new Date();
         const daysLeft = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 86400000));
+        const statusMap: Record<string, { label: string; classes: string }> = {
+          ACTIVE: { label: "Actif", classes: "bg-green-100 text-green-800" },
+          FROZEN: { label: "En pause", classes: "bg-accent-100 text-accent-600" },
+          CANCELLED: { label: "Annulé", classes: "bg-stone2-100 text-stone2-500" },
+          EXPIRED: { label: "Expiré", classes: "bg-red-100 text-red-800" },
+        };
         const info = statusMap[s.status] ?? { label: s.status, classes: "bg-stone2-100 text-stone2-600" };
 
         return (
-          <div key={s.id} className="bg-white border border-stone2-100 p-6 flex flex-wrap items-start gap-5">
+          <div key={s.id} className="bg-white border border-stone2-200 p-5 flex flex-wrap items-center gap-4">
             <div className="flex-1 min-w-[200px]">
-              <div className="flex items-center gap-3 mb-3">
-                <h3 className="font-serif text-2xl text-brand-600 font-medium">{s.planName}</h3>
-                <span className={`badge ${info.classes}`}>{info.label}</span>
-              </div>
-              <p className="text-xs text-stone2-500">
-                Du {new Date(s.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                {" au "}
-                {end.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+              <h3 className="font-serif text-xl text-brand-600">{s.planName}</h3>
+              <p className="text-xs text-stone2-500 mt-1">
+                Du {new Date(s.startDate).toLocaleDateString("fr-FR")} au {end.toLocaleDateString("fr-FR")}
               </p>
               {s.status === "ACTIVE" && (
-                <p className={`text-xs mt-1.5 font-medium ${daysLeft <= 7 ? "text-orange-600" : "text-stone2-500"}`}>
+                <p className="text-xs text-stone2-500 mt-0.5">
                   {daysLeft > 0 ? `${daysLeft} jours restants` : "Expire aujourd'hui"}
                 </p>
               )}
               {s.frozenAt && (
-                <p className="text-xs text-accent-600 mt-1.5">
+                <p className="text-xs text-accent-600 mt-0.5">
                   En pause depuis le {new Date(s.frozenAt).toLocaleDateString("fr-FR")}
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
+              <span className={`badge ${info.classes}`}>{info.label}</span>
               {s.status === "ACTIVE" && (
-                <button onClick={() => doFreeze(s.id)} disabled={pending} className="btn-secondary text-xs py-2">
+                <button onClick={() => doFreeze(s.id)} disabled={pending}
+                  className="btn-secondary text-sm py-1.5">
                   Mettre en pause
                 </button>
               )}
               {s.status === "FROZEN" && (
-                <button onClick={() => doUnfreeze(s.id)} disabled={pending} className="btn-primary text-xs py-2">
+                <button onClick={() => doUnfreeze(s.id)} disabled={pending}
+                  className="btn-primary text-sm py-1.5">
                   Reprendre
                 </button>
               )}
@@ -430,6 +403,8 @@ function SubsTab({ subs }: { subs: Sub[] }) {
     </div>
   );
 }
+
+// ─── Transactions tab ────────────────────────────────────────────────────────
 
 function TransactionsTab({ transactions }: { transactions: Tx[] }) {
   if (transactions.length === 0)
@@ -442,6 +417,7 @@ function TransactionsTab({ transactions }: { transactions: Tx[] }) {
 
   return (
     <>
+      {/* Mobile cards */}
       <div className="sm:hidden divide-y divide-stone2-100 border border-stone2-200 bg-white">
         {transactions.map((t) => (
           <div key={t.id} className="px-4 py-3 flex items-start justify-between gap-3">
@@ -463,6 +439,8 @@ function TransactionsTab({ transactions }: { transactions: Tx[] }) {
           </div>
         ))}
       </div>
+
+      {/* Desktop table */}
       <div className="hidden sm:block bg-white border border-stone2-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -470,7 +448,7 @@ function TransactionsTab({ transactions }: { transactions: Tx[] }) {
               <th className="text-left px-5 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Date</th>
               <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Opération</th>
               <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Crédits</th>
-              <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widests text-stone2-400 font-normal">Montant</th>
+              <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widest text-stone2-400 font-normal">Montant</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone2-100">
@@ -497,6 +475,8 @@ function TransactionsTab({ transactions }: { transactions: Tx[] }) {
     </>
   );
 }
+
+// ─── Pause tab (freeze credits) ───────────────────────────────────────────────
 
 const DURATIONS: { label: string; weeks: number }[] = [
   { label: "1 semaine", weeks: 1 },
@@ -542,6 +522,7 @@ function PauseTab({
           {message}
         </p>
       )}
+
       {isFrozen ? (
         <div className="bg-white border border-stone2-200 p-6 space-y-4">
           <div>
@@ -560,7 +541,11 @@ function PauseTab({
               Vos crédits ne peuvent pas être utilisés pendant cette période.
             </p>
           </div>
-          <button onClick={doUnfreeze} disabled={pending} className="btn-secondary">
+          <button
+            onClick={doUnfreeze}
+            disabled={pending}
+            className="btn-secondary"
+          >
             {pending ? "…" : "Annuler le gel"}
           </button>
         </div>
@@ -592,7 +577,11 @@ function PauseTab({
               ))}
             </div>
           </div>
-          <button onClick={doFreeze} disabled={pending} className="btn-primary">
+          <button
+            onClick={doFreeze}
+            disabled={pending}
+            className="btn-primary"
+          >
             {pending ? "…" : "Geler mes crédits"}
           </button>
         </div>

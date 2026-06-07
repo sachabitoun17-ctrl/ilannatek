@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
 
 :root {
   --background: #f7f3ec;
@@ -12,7 +12,6 @@
   --line: #e8e0ce;
   --ink: #1c1c1a;
   --gold: #a07b3a;
-  --ease: 0.15s ease;
 }
 
 html,
@@ -22,8 +21,6 @@ body {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 .font-serif {
@@ -32,127 +29,74 @@ body {
 }
 
 @layer components {
-  /* ── Buttons ─────────────────────────────────────────────────── */
-
+  /* Base button */
   .btn {
-    @apply inline-flex items-center justify-center rounded-none px-6 py-3 text-xs font-medium uppercase tracking-[0.18em] min-h-[44px] select-none;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+    @apply inline-flex items-center justify-center rounded-none px-6 py-3 text-xs font-medium uppercase tracking-[0.18em] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px];
   }
 
-  .btn:disabled {
-    @apply opacity-40 cursor-not-allowed pointer-events-none;
-  }
-
-  .btn:focus-visible {
-    @apply outline-none ring-2 ring-offset-2 ring-brand-600;
-  }
-
+  /* Primary — deep ink */
   .btn-primary {
-    @apply btn bg-brand-600 text-cream-50 hover:bg-brand-700 active:bg-brand-800;
+    @apply btn bg-brand-600 text-cream-50 hover:bg-brand-700;
   }
 
+  /* Secondary — outlined */
   .btn-secondary {
-    @apply btn border border-brand-600 bg-transparent text-brand-600 hover:bg-brand-600 hover:text-cream-50 active:bg-brand-700;
+    @apply btn border border-brand-600 bg-transparent text-brand-600 hover:bg-brand-600 hover:text-cream-50;
   }
 
+  /* Ghost */
   .btn-ghost {
-    @apply btn bg-transparent text-stone2-600 hover:bg-stone2-100 hover:text-brand-600 active:bg-stone2-200;
+    @apply btn bg-transparent text-stone2-600 hover:bg-stone2-100;
   }
 
+  /* Danger */
   .btn-danger {
-    @apply btn bg-red-900 text-cream-50 hover:bg-red-950 active:bg-red-900;
+    @apply btn bg-red-900 text-cream-50 hover:bg-red-950;
   }
 
+  /* Accent — warm gold (rare highlight) */
   .btn-accent {
-    @apply btn bg-accent-400 text-brand-600 hover:bg-accent-300 active:bg-accent-500;
+    @apply btn bg-accent-500 text-cream-50 hover:bg-accent-600;
   }
 
-  /* ── Card ────────────────────────────────────────────────────── */
-
+  /* Card — clean cream */
   .card {
     @apply bg-white border border-stone2-100 p-6;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .card-hover {
-    @apply card hover:border-stone2-300 hover:shadow-sm cursor-pointer;
-  }
-
-  /* ── Input ───────────────────────────────────────────────────── */
-
+  /* Input */
   .input {
-    @apply block w-full border border-stone2-200 bg-white px-3 py-2.5 text-sm placeholder:text-stone2-400;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    @apply block w-full border border-stone2-200 bg-white px-3 py-2.5 text-sm focus:border-brand-600 focus:outline-none focus:ring-0 placeholder:text-stone2-400;
   }
 
-  .input:focus {
-    @apply border-brand-600 outline-none ring-0;
-    box-shadow: 0 0 0 3px rgba(28, 28, 26, 0.08);
-  }
-
-  .input:disabled {
-    @apply opacity-50 cursor-not-allowed bg-stone2-50;
-  }
-
-  /* ── Label ───────────────────────────────────────────────────── */
-
+  /* Label — uppercase, spacious */
   .label {
     @apply block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone2-500 mb-1.5;
   }
 
-  /* ── Badge ───────────────────────────────────────────────────── */
-
+  /* Badge */
   .badge {
-    @apply inline-flex items-center px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider leading-none;
+    @apply inline-flex items-center px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider;
   }
 
-  .badge-green {
-    @apply badge bg-emerald-50 text-emerald-800 border border-emerald-200;
-  }
-
-  .badge-red {
-    @apply badge bg-red-50 text-red-800 border border-red-200;
-  }
-
-  .badge-amber {
-    @apply badge bg-amber-50 text-amber-800 border border-amber-200;
-  }
-
-  .badge-gray {
-    @apply badge bg-stone2-100 text-stone2-500 border border-stone2-200;
-  }
-
-  .badge-ink {
-    @apply badge bg-brand-600 text-cream-50;
-  }
-
-  .badge-gold {
-    @apply badge bg-accent-100 text-accent-600 border border-accent-200;
-  }
-
-  /* ── Typography helpers ──────────────────────────────────────── */
-
+  /* Section title — sant-roch eyebrow */
   .section-title {
     @apply text-[10px] font-semibold uppercase tracking-[0.22em] text-stone2-500 mb-1;
   }
 
+  /* Display heading — serif */
   .h-display {
     @apply font-serif font-medium text-brand-600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
+  /* Table header cell */
   .th {
     @apply text-[10px] font-normal uppercase tracking-[0.18em] text-stone2-500 pb-2;
   }
-
-  /* ── Misc ────────────────────────────────────────────────────── */
-
-  .divider {
-    @apply border-t border-stone2-100 my-6;
-  }
 }
 
-/* Smooth scrollbar for week-grid */
+/* Smoother scrollbar for week-grid */
 .cal-scroll::-webkit-scrollbar {
   height: 8px;
   width: 8px;
@@ -160,7 +104,4 @@ body {
 .cal-scroll::-webkit-scrollbar-thumb {
   background: #ddd5c5;
   border-radius: 4px;
-}
-.cal-scroll::-webkit-scrollbar-track {
-  background: transparent;
 }

@@ -51,7 +51,7 @@ export async function sendInviteAction(
     return { error: "Vous avez déjà envoyé une invitation à cet email." };
   }
 
-  // Limit: max 3 active (non-expired, non-used) invites per user
+  // Limit: max 10 active (non-expired, non-used) invites per user
   const activeInvites = await db.friendInvite.count({
     where: {
       fromUserId: user.id,
@@ -60,10 +60,10 @@ export async function sendInviteAction(
     },
   });
 
-  if (activeInvites >= 3) {
+  if (activeInvites >= 10) {
     return {
       error:
-        "Vous avez atteint la limite de 3 invitations actives. Attendez qu'une expire ou soit acceptée.",
+        "Vous avez atteint la limite de 10 invitations actives. Attendez qu'une expire ou soit acceptée.",
     };
   }
 

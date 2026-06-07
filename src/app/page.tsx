@@ -257,30 +257,27 @@ export default async function Home() {
               {
                 step: "01",
                 title: "Choisir",
-                desc: "Consultez le planning, filtrez par horaire ou par instructeur — trouvez votre cours en un coup d'œil.",
+                desc: "Consultez le planning, filtrez par studio, par horaire, par instructeur.",
               },
               {
                 step: "02",
                 title: "Réserver",
-                desc: "Un crédit débité, une confirmation instantanée par email. Votre place est garantie.",
+                desc: "Confirmation instantanée par email. Un crédit, et c'est validé.",
               },
               {
                 step: "03",
                 title: "Venir",
-                desc: "Check-in à l'entrée du studio. Profitez pleinement. Recommencez quand vous voulez.",
+                desc: "Check-in à l'entrée du studio. Profitez. Recommencez.",
               },
             ].map((item) => (
-              <div
-                key={item.step}
-                className="bg-cream-50 px-8 md:px-10 py-12 md:py-14 text-center border-b border-stone2-200 md:border-0 last:border-0"
-              >
-                <span className="font-serif text-[4.5rem] leading-none text-accent-400/50 block mb-5">
+              <div key={item.step} className="text-center">
+                <p className="font-serif text-5xl text-accent-500 mb-4">
                   {item.step}
-                </span>
-                <h3 className="font-serif text-3xl text-brand-600 mb-4 font-medium">
+                </p>
+                <h3 className="font-serif text-2xl text-brand-600 mb-3">
                   {item.title}
                 </h3>
-                <p className="text-stone2-500 text-sm leading-relaxed max-w-[240px] mx-auto">
+                <p className="text-stone2-500 text-sm leading-relaxed max-w-[260px] mx-auto">
                   {item.desc}
                 </p>
               </div>
@@ -383,12 +380,15 @@ export default async function Home() {
                 Achetez des crédits, utilisez-les quand vous voulez.
                 Parfait pour une pratique libre et sans engagement.
               </p>
-              <Link href="/packs" className="btn-primary">
-                Voir les packs
+              <Link
+                href="/packs"
+                className="inline-flex items-center text-[11px] uppercase tracking-[0.22em] text-brand-600 border-b border-brand-600/40 pb-1 hover:border-brand-600 transition-colors"
+              >
+                Voir les packs →
               </Link>
             </div>
             <div className="bg-white p-10 relative">
-              <span className="absolute top-5 right-5 badge bg-accent-400 text-brand-600 font-semibold">
+              <span className="absolute top-4 right-4 text-[9px] uppercase tracking-widest px-2 py-1 bg-accent-500 text-brand-600 font-semibold">
                 Populaire
               </span>
               <p className="text-[10px] uppercase tracking-[0.28em] text-stone2-400 mb-4">
@@ -399,8 +399,11 @@ export default async function Home() {
                 Mensuel. Crédits renouvelés automatiquement, sans engagement.
                 La meilleure option pour les habitué·e·s.
               </p>
-              <Link href="/subscriptions" className="btn-primary">
-                Voir les abonnements
+              <Link
+                href="/subscriptions"
+                className="inline-flex items-center text-[11px] uppercase tracking-[0.22em] text-brand-600 border-b border-brand-600/40 pb-1 hover:border-brand-600 transition-colors"
+              >
+                Voir les abonnements →
               </Link>
             </div>
           </div>
@@ -440,9 +443,8 @@ export default async function Home() {
           >
             Prêt·e à commencer ?
           </h2>
-          <p className="text-stone2-300 mb-12 max-w-sm mx-auto text-sm leading-relaxed">
-            Créez votre compte en 30 secondes.
-            Votre premier cours n&apos;attend plus que vous.
+          <p className="text-stone2-500 mb-10 max-w-md mx-auto">
+            Créez votre compte en 30 secondes. Réservez votre premier cours aujourd'hui.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Link
@@ -460,7 +462,6 @@ export default async function Home() {
           </div>
         </section>
       )}
-
     </div>
   );
 }

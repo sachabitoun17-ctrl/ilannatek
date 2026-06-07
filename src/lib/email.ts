@@ -50,7 +50,7 @@ export async function sendEmail(opts: SendOpts): Promise<void> {
   );
 }
 
-// ─── Brand-consistent HTML wrapper ───────────────────────────────────────────
+// ─── Brand-consistent HTML wrapper ─────────────────────────────────────────────
 
 const baseStyle = `
   <style>
@@ -82,7 +82,7 @@ function wrap(title: string, body: string) {
   </body></html>`;
 }
 
-// ─── Templates ───────────────────────────────────────────────────────────────
+// ─── Templates ──────────────────────────────────────────────────────────────────────
 
 export const emailTemplates = {
   welcome: (firstName: string) => ({
@@ -138,7 +138,7 @@ export const emailTemplates = {
     className: string;
     startTime: Date;
   }) => ({
-    subject: `Place obtenue — ${args.className} 🎉`,
+    subject: `Place obtenue — ${args.className}`,
     html: wrap(
       `Bonne nouvelle !`,
       `<p>Bonjour ${args.firstName},</p>
@@ -387,6 +387,292 @@ export const emailTemplates = {
        <hr class="divider"/>
        <p class="muted">Si vous ne confirmez pas dans les 30 minutes, votre place sera automatiquement libérée et proposée au membre suivant sur la liste d'attente.</p>`
     ),
+  }),
+
+  // ─── ONBOARDING DRIP ─────────────────────────────────────────────────────────────
+
+  onboardingNudge: (args: { firstName: string; creditsBalance: number }) => ({
+    subject: `${args.firstName}, votre crédit attend son premier cours`,
+    html: wrap(
+      `Votre crédit vous attend`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Vous vous êtes inscrit·e hier — bienvenue à nouveau. Vous avez <strong>${args.creditsBalance} crédit${args.creditsBalance > 1 ? "s" : ""}</strong> sur votre compte, prêt à être utilisé.</p>
+       <div class="highlight">Le premier cours est souvent le plus difficile à planifier. Parcourez le planning — des créneaux sont disponibles dès aujourd'hui.</div>
+       <p style="margin:24px 0"><a class="btn btn-accent" href="${siteUrl()}/schedule">Trouver mon premier cours →</a></p>
+       <hr class="divider"/>
+       <p class="muted">Annulation gratuite jusqu'à 2h avant. Aucun engagement.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, votre crédit de bienvenue vous attend. Réservez votre premier cours : ${siteUrl()}/schedule`,
+  }),
+
+  onboardingLastCall: (args: { firstName: string }) => ({
+    subject: `${args.firstName} — votre place au studio vous attend encore`,
+    html: wrap(
+      `C'est le moment`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Cela fait quelques jours depuis votre inscription. Votre crédit est toujours là.</p>
+       <div class="highlight">Commencez par un cours découverte — conçus pour tous les niveaux, ils vous donneront une idée claire de ce qui vous convient.</div>
+       <p>Le planning est mis à jour en continu. Filtrez par discipline, par horaire ou par instructeur.</p>
+       <p style="margin:24px 0"><a class="btn btn-accent" href="${siteUrl()}/schedule">Voir les cours disponibles →</a></p>
+       <hr class="divider"/>
+       <p class="muted">Des questions avant de commencer ? Répondez directement à cet email.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, votre crédit de bienvenue vous attend toujours. Réservez sur ${siteUrl()}/schedule`,
+  }),
+
+  // ─── RAPPEL 2H ────────────────────────────────────────────────────────────────────────
+
+  reminder2h: (args: {
+    firstName: string;
+    className: string;
+    startTime: Date;
+    location: string;
+    locationAddress?: string | null;
+  }) => ({
+    subject: `Dans 2h : ${args.className}`,
+    html: wrap(
+      `C'est dans 2h`,
+      `<p>Bonjour ${args.firstName}, votre cours commence bientôt.</p>
+       <div class="highlight">
+         <strong>${args.className}</strong><br/>
+         ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} aujourd'hui · ${args.location}
+         ${args.locationAddress ? `<br/><span class="muted">${args.locationAddress}</span>` : ""}
+       </div>
+       <p class="muted" style="margin-top:16px">Prévoyez d'arriver 5 à 10 minutes avant le début.</p>
+       <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/account">Mon espace →</a></p>
+       <hr class="divider"/>
+       <p class="muted">Délai d'annulation dépassé — merci de prévenir le studio directement si vous ne pouvez pas venir.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, votre cours ${args.className} commence dans 2h à ${args.location}. À tout à l'heure !`,
+  }),
+
+  // ─── POST-COURS ─────────────────────────────────────────────────────────────────────────
+
+  postClassThankYou: (args: {
+    firstName: string;
+    className: string;
+    instructor: string;
+    totalAttended: number;
+    creditsRemaining: number;
+  }) => ({
+    subject: `Bravo pour aujourd'hui, ${args.firstName}`,
+    html: wrap(
+      `Bien joué !`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Merci d'avoir été là pour <strong>${args.className}</strong> avec ${args.instructor}.</p>
+       <div class="highlight">
+         ${args.totalAttended >= 10
+           ? `<strong>${args.totalAttended} cours</strong> au total — vous faites partie de nos membres les plus réguliers.`
+           : `Vous avez déjà suivi <strong>${args.totalAttended} cours</strong> chez nous. Continuez comme ça !`
+         }
+       </div>
+       <p>Il vous reste <strong>${args.creditsRemaining} crédit${args.creditsRemaining !== 1 ? "s" : ""}</strong>.</p>
+       <p style="margin:24px 0"><a class="btn" href="${siteUrl()}/schedule">Réserver le prochain →</a></p>
+       ${args.creditsRemaining <= 1 ? `<hr class="divider"/><p class="muted">Presque à court de crédits ? <a href="${siteUrl()}/packs" style="color:#A07B3A">Voir les packs →</a></p>` : ""}`
+    ),
+    text: `Bravo ${args.firstName} pour votre cours ${args.className} ! ${args.totalAttended} cours au total. Il vous reste ${args.creditsRemaining} crédit(s). Réservez sur ${siteUrl()}/schedule`,
+  }),
+
+  // ─── CRÉDITS ──────────────────────────────────────────────────────────────────────────
+
+  lowCredits: (args: { firstName: string; creditsRemaining: number }) => ({
+    subject: `Il vous reste ${args.creditsRemaining} crédit — pensez à recharger`,
+    html: wrap(
+      `Votre solde est bas`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Il ne vous reste que <strong>${args.creditsRemaining} crédit</strong> sur votre compte.</p>
+       <div class="highlight">Rechargez maintenant pour ne pas manquer vos prochains cours. Les packs sont disponibles sans abonnement.</div>
+       <div style="margin:20px 0;border:1px solid #DDD5C5;padding:20px">
+         <p style="margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;color:#6E6555">Deux options</p>
+         <table width="100%" cellpadding="0" cellspacing="0">
+           <tr>
+             <td width="48%" style="vertical-align:top;padding-right:12px">
+               <p style="font-weight:600;margin:0 0 4px;color:#1C1C1A">Pack ponctuel</p>
+               <p style="font-size:13px;color:#6E6555;margin:0">Flexibilité totale, sans engagement</p>
+             </td>
+             <td width="4%" style="border-left:1px solid #EAE3D4"></td>
+             <td width="48%" style="vertical-align:top;padding-left:12px">
+               <p style="font-weight:600;margin:0 0 4px;color:#A07B3A">Abonnement mensuel</p>
+               <p style="font-size:13px;color:#6E6555;margin:0">Jusqu'à 40% plus économique</p>
+             </td>
+           </tr>
+         </table>
+       </div>
+       <p style="margin:20px 0">
+         <a class="btn" href="${siteUrl()}/packs" style="margin-right:8px">Packs →</a>
+         <a class="btn btn-accent" href="${siteUrl()}/subscriptions">Abonnements →</a>
+       </p>`
+    ),
+    text: `Bonjour ${args.firstName}, il vous reste ${args.creditsRemaining} crédit. Rechargez sur ${siteUrl()}/packs`,
+  }),
+
+  noCredits: (args: { firstName: string }) => ({
+    subject: `Vos crédits sont épuisés — revenez au studio`,
+    html: wrap(
+      `Solde épuisé`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Votre solde de crédits est à zéro. Pour réserver votre prochain cours, rechargez votre compte.</p>
+       <div class="highlight">
+         <strong>Pack ponctuel</strong> — idéal pour 1 à 2 cours par mois, sans engagement.<br/>
+         <strong>Abonnement mensuel</strong> — jusqu'à 40% plus économique pour une pratique régulière.
+       </div>
+       <p style="margin:24px 0;text-align:center">
+         <a class="btn btn-accent" href="${siteUrl()}/packs" style="font-size:13px;padding:16px 32px">Recharger mon compte →</a>
+       </p>
+       <hr class="divider"/>
+       <p class="muted">Besoin d'aide pour choisir ? Répondez à cet email.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, votre solde est épuisé. Rechargez sur ${siteUrl()}/packs ou abonnez-vous sur ${siteUrl()}/subscriptions`,
+  }),
+
+  // ─── RÉTENTION / RÉENGAGEMENT ──────────────────────────────────────────────────────
+
+  reengagement14d: (args: {
+    firstName: string;
+    creditsBalance: number;
+    nextClassName?: string | null;
+    nextStartTime?: Date | null;
+    nextLocation?: string | null;
+  }) => ({
+    subject: `${args.firstName}, ça fait 2 semaines…`,
+    html: wrap(
+      `On ne vous a pas vu`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Cela fait deux semaines que nous ne vous avons pas vu au studio. Vos <strong>${args.creditsBalance} crédit${args.creditsBalance !== 1 ? "s" : ""}</strong> vous attendent toujours.</p>
+       ${args.nextClassName && args.nextStartTime && args.nextLocation ? `
+       <div class="highlight">
+         <strong>Prochain cours disponible</strong><br/>
+         ${args.nextClassName} — ${args.nextStartTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${args.nextStartTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}<br/>
+         ${args.nextLocation}
+       </div>` : `<div class="highlight">Consultez le planning — de nouveaux créneaux ont peut-être été ajoutés depuis votre dernière visite.</div>`}
+       <p style="margin:24px 0"><a class="btn" href="${siteUrl()}/schedule">Reprendre →</a></p>
+       <hr class="divider"/>
+       <p class="muted">Vos crédits ne s'expirent pas.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, cela fait 2 semaines. Vos ${args.creditsBalance} crédit(s) vous attendent sur ${siteUrl()}/schedule`,
+  }),
+
+  reengagement30d: (args: { firstName: string; creditsBalance: number }) => ({
+    subject: `Votre pratique vous attend, ${args.firstName}`,
+    html: wrap(
+      `Un mois déjà`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Cela fait un mois depuis votre dernier cours. La pratique régulière fait toute la différence — et le plus dur c'est souvent de recommencer.</p>
+       ${args.creditsBalance > 0
+         ? `<div class="highlight">Vous avez encore <strong>${args.creditsBalance} crédit${args.creditsBalance !== 1 ? "s" : ""}</strong> — aucune raison d'attendre.</div>`
+         : `<div class="highlight">De nouveaux créneaux en soirée et le week-end viennent d'être ajoutés au planning.</div>`
+       }
+       <p>Pas de jugement — il suffit d'un cours pour retrouver le rythme.</p>
+       <p style="margin:24px 0"><a class="btn btn-accent" href="${siteUrl()}/schedule">Reprendre le planning →</a></p>
+       <hr class="divider"/>
+       <p class="muted">Abonnement suspendu ? Réactivez-le depuis votre espace en un clic.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, un mois sans cours. Reprenez sur ${siteUrl()}/schedule — vos ${args.creditsBalance} crédit(s) vous attendent.`,
+  }),
+
+  winBack60d: (args: { firstName: string; promoCode?: string | null }) => ({
+    subject: `Deux mois — on vous a gardé une place, ${args.firstName}`,
+    html: wrap(
+      `Revenez, on vous attend`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Cela fait deux mois depuis votre dernier cours. Votre compte est toujours actif et votre espace vous attend.</p>
+       ${args.promoCode
+         ? `<div class="highlight"><strong>Pour marquer votre retour</strong> — utilisez le code <strong style="font-size:18px;letter-spacing:0.12em;color:#1C1C1A">${args.promoCode}</strong> lors de votre prochain achat.</div>`
+         : `<div class="highlight">Le planning est renouvelé régulièrement. Nouvelles disciplines, nouveaux créneaux, nouveaux instructeurs.</div>`
+       }
+       <p style="margin:24px 0;text-align:center">
+         <a class="btn btn-accent" href="${siteUrl()}/schedule" style="padding:16px 32px;font-size:13px">Reprendre maintenant →</a>
+       </p>
+       <hr class="divider"/>
+       <p class="muted">Vous ne souhaitez plus recevoir nos emails ? <a href="${siteUrl()}/account/profile" style="color:#928775">Gérer mes préférences</a>.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, deux mois sans cours. Votre compte vous attend sur ${siteUrl()}/schedule${args.promoCode ? `. Code promo : ${args.promoCode}` : ""}.`,
+  }),
+
+  // ─── JALONS ──────────────────────────────────────────────────────────────────────────
+
+  streakMilestone: (args: { firstName: string; totalCourses: number }) => ({
+    subject: `${args.totalCourses} cours — vous faites partie des piliers du studio`,
+    html: wrap(
+      `${args.totalCourses} cours au compteur`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Vous venez d'atteindre <strong>${args.totalCourses} cours</strong> au studio Ilannatek.</p>
+       <div style="text-align:center;padding:32px 0;border:1px solid #DDD5C5;margin:20px 0">
+         <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:72px;font-weight:600;color:#A07B3A;margin:0;line-height:1">${args.totalCourses}</p>
+         <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.22em;color:#6E6555;margin:10px 0 0">cours suivis</p>
+       </div>
+       <p>Vous faites partie des membres les plus assidus de notre studio. Merci pour votre fidélité — c'est vous qui faites l'ambiance de chaque cours.</p>
+       <p style="margin:24px 0"><a class="btn" href="${siteUrl()}/schedule">Prochains cours →</a></p>`
+    ),
+    text: `Bravo ${args.firstName} ! Vous avez atteint ${args.totalCourses} cours au studio. Continuez sur ${siteUrl()}/schedule`,
+  }),
+
+  // ─── PARRAINAGE ──────────────────────────────────────────────────────────────────────
+
+  referralJoined: (args: {
+    firstName: string;
+    friendFirstName: string;
+    creditsEarned: number;
+    newBalance: number;
+  }) => ({
+    subject: `${args.friendFirstName} a rejoint le studio — +${args.creditsEarned} crédit pour vous`,
+    html: wrap(
+      `Votre filleul a rejoint le studio !`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p><strong>${args.friendFirstName}</strong> vient de créer son compte chez Ilannatek grâce à votre lien de parrainage.</p>
+       <div class="highlight">
+         <strong>+${args.creditsEarned} crédit</strong> ajouté à votre compte — merci de faire grandir la communauté.<br/>
+         <span class="muted">Solde actuel : ${args.newBalance} crédit${args.newBalance !== 1 ? "s" : ""}</span>
+       </div>
+       <p>Partagez à nouveau votre lien pour gagner un crédit à chaque nouvel inscrit. Il n'y a pas de limite.</p>
+       <p style="margin:24px 0"><a class="btn" href="${siteUrl()}/invite">Partager mon lien →</a></p>`
+    ),
+    text: `Bravo ${args.firstName} ! ${args.friendFirstName} a rejoint le studio grâce à vous. +${args.creditsEarned} crédit sur votre compte. Solde : ${args.newBalance} crédit(s).`,
+  }),
+
+  // ─── ABONNEMENT ──────────────────────────────────────────────────────────────────────
+
+  subscriptionRenewed: (args: {
+    firstName: string;
+    planName: string;
+    creditsAdded: number;
+    newEndDate: Date;
+    newBalance: number;
+  }) => ({
+    subject: `Abonnement renouvelé — ${args.planName}`,
+    html: wrap(
+      `Renouvellement automatique`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Votre abonnement <strong>${args.planName}</strong> a été renouvelé automatiquement.</p>
+       <div style="margin:20px 0">
+         <div class="detail-row"><span class="detail-label">Crédits ajoutés</span><strong>+${args.creditsAdded} crédit${args.creditsAdded !== 1 ? "s" : ""}</strong></div>
+         <div class="detail-row"><span class="detail-label">Solde actuel</span><strong>${args.newBalance} crédit${args.newBalance !== 1 ? "s" : ""}</strong></div>
+         <div class="detail-row" style="border:none"><span class="detail-label">Prochaine échéance</span><strong>${args.newEndDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</strong></div>
+       </div>
+       <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/schedule">Réserver un cours →</a></p>
+       <hr class="divider"/>
+       <p class="muted">Pour annuler votre abonnement, rendez-vous dans votre espace membre à tout moment.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, votre abonnement ${args.planName} a été renouvelé. +${args.creditsAdded} crédit(s). Solde : ${args.newBalance}. Prochaine échéance : ${args.newEndDate.toLocaleDateString("fr-FR")}.`,
+  }),
+
+  // ─── COMPTE ──────────────────────────────────────────────────────────────────────────
+
+  accountDeleted: (args: { firstName: string }) => ({
+    subject: `Votre compte Ilannatek a été supprimé`,
+    html: wrap(
+      `Compte supprimé`,
+      `<p>Bonjour ${args.firstName},</p>
+       <p>Votre compte Ilannatek a bien été supprimé. Vos données personnelles ont été anonymisées conformément au RGPD (Art. 17).</p>
+       <div class="highlight">
+         <strong>Supprimé :</strong> nom, prénom, adresse email, téléphone, tokens de session.<br/>
+         <strong>Conservé de façon anonyme :</strong> historique comptable (obligation légale 10 ans).
+       </div>
+       <p class="muted" style="margin-top:16px">Une question ? Écrivez-nous à <a href="mailto:privacy@ilannatek.fr" style="color:#A07B3A">privacy@ilannatek.fr</a>.</p>
+       <hr class="divider"/>
+       <p class="muted">C'est la dernière communication que vous recevrez de notre part.</p>`
+    ),
+    text: `Bonjour ${args.firstName}, votre compte Ilannatek a été supprimé. Vos données ont été anonymisées (RGPD Art. 17). Questions : privacy@ilannatek.fr`,
   }),
 };
 

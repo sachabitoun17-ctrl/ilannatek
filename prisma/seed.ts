@@ -240,6 +240,7 @@ async function main() {
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
 
+    // 8 créneaux horaires par jour
     const dailySlots = [
       { h: 7, m: 0 },
       { h: 8, m: 0 },
@@ -251,46 +252,58 @@ async function main() {
       { h: 20, m: 30 },
     ];
 
+    // Dimanche = moins de créneaux (seulement matin)
     const sundaySlots = [
       { h: 9, m: 0 },
       { h: 10, m: 30 },
       { h: 11, m: 30 },
     ];
 
+    // Mapping instructeurs préférés par type de cours
     const instructorByType: Record<string, number[]> = {
-      "ct-yoga": [0, 3],
-      "ct-hiit": [1, 4],
-      "ct-pilates": [2],
-      "ct-cycle": [4, 1],
-      "ct-barre": [2, 0],
-      "ct-meditation": [3, 0],
+      "ct-yoga": [0, 3],       // Camille, Antoine
+      "ct-hiit": [1, 4],       // Hugo, Sofia
+      "ct-pilates": [2],       // Léa
+      "ct-cycle": [4, 1],      // Sofia, Hugo
+      "ct-barre": [2, 0],      // Léa, Camille
+      "ct-meditation": [3, 0], // Antoine, Camille
     };
 
     const createdSessions: { id: string; startTime: Date; status: string }[] = [];
 
+    // -14 jours → +60 jours = 75 jours de planning
     for (let day = -14; day <= 60; day++) {
       const baseDate = addDays(today, day);
-      const dayOfWeek = baseDate.getDay();
+      const dayOfWeek = baseDate.getDay(); // 0=dimanche
       const slots = dayOfWeek === 0 ? sundaySlots : dailySlots;
 
+      // Sauter quelques jours aléatoirement pour réalisme (fériés etc.)
       const seed = Math.abs(day * 7 + 13);
-      if (day > 0 && seed % 21 === 0) continue;
+      if (day > 0 && seed % 21 === 0) continue; // ~1 jour/3 semaines fermé
 
       for (let i = 0; i < slots.length; i++) {
         const slot = slots[i];
         const start = setTime(baseDate, slot.h, slot.m);
         const isPast = start < now;
 
+        // Choisir le type de cours selon horaire + jour
         const ctIndex = (Math.abs(day) + i + dayOfWeek) % classTypes.length;
         const ct = classTypes[ctIndex];
 
+        // Choisir l'instructeur selon le type de cours
         const instrIndices = instructorByType[ct.id] ?? [0];
         const instrIdx = instrIndices[(Math.abs(day) + i) % instrIndices.length];
         const instructor = instructors[instrIdx];
 
+        // Alterner les studios
         const location = locations[(Math.abs(day) + i) % locations.length];
+
         const end = new Date(start.getTime() + ct.durationMin * 60000);
-        const cap = 8 + ((Math.abs(day) + i) % 3) * 4;
+
+        // Capacité variée: 8-16 places
+        const cap = 8 + ((Math.abs(day) + i) % 3) * 4; // 8, 12 ou 16
+
+        // Quelques séances annulées dans le passé (1/20)
         const isCancelled = isPast && (seed % 20 === 0);
 
         const s = await db.session.create({
@@ -308,6 +321,7 @@ async function main() {
       }
     }
 
+    // ─── Réservations passées (historique dense) ──────────────────────────────
     const pastSessions = createdSessions.filter(
       (s) => s.startTime < now && s.status === "SCHEDULED"
     );
@@ -315,6 +329,7 @@ async function main() {
     for (let i = 0; i < pastSessions.length; i++) {
       const session = pastSessions[i];
       const seed = i * 7 + 3;
+      // 2-8 membres par séance passée
       const count = 2 + (seed % 7);
       const membersToBook = membres.slice(0, Math.min(count, membres.length));
 
@@ -343,6 +358,7 @@ async function main() {
       }
     }
 
+    // ─── Réservations à venir ─────────────────────────────────────────────────
     const upcomingSessions = createdSessions
       .filter((s) => s.startTime > now)
       .slice(0, 60);
@@ -364,6 +380,7 @@ async function main() {
         }
       }
 
+      // Quelques séances avec liste d'attente (complet + 2 waitlistés)
       if (seed % 8 === 0) {
         const waitlisters = membres.slice(5, 7);
         for (let w = 0; w < waitlisters.length; w++) {

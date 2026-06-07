@@ -15,6 +15,7 @@ import { LIMITS, rateLimit } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { getSettings } from "@/lib/settings";
+import { decodeRefCode } from "@/lib/referral";
 
 const registerSchema = z.object({
   email: z.string().email("Email invalide").max(255),
@@ -76,6 +77,23 @@ export async function registerAction(
     }
   }
 
+  // Referral link (only if no email invite)
+  let referrer: { id: string; email: string; firstName: string; lastName: string } | null = null;
+  const rawRefCode = formData.get("refCode");
+  const refCodeStr = typeof rawRefCode === "string" && rawRefCode.trim() ? rawRefCode.trim() : null;
+  if (!validInvite && refCodeStr) {
+    const referrerId = decodeRefCode(refCodeStr);
+    if (referrerId) {
+      const found = await db.user.findFirst({
+        where: { id: referrerId, active: true },
+        select: { id: true, email: true, firstName: true, lastName: true },
+      });
+      if (found) referrer = found;
+    }
+  }
+
+  const bonusCredits = validInvite ? validInvite.creditsGranted : referrer ? 1 : 0;
+
   const user = await db.user.create({
     data: {
       email: parsed.data.email.toLowerCase(),
@@ -83,7 +101,7 @@ export async function registerAction(
       firstName: parsed.data.firstName.trim(),
       lastName: parsed.data.lastName.trim(),
       phone: parsed.data.phone?.trim(),
-      creditsBalance: settings.welcomeCredits + (validInvite ? validInvite.creditsGranted : 0),
+      creditsBalance: settings.welcomeCredits + bonusCredits,
     },
   });
 
@@ -127,6 +145,40 @@ export async function registerAction(
     await db.friendInvite.update({
       where: { id: validInvite.id },
       data: { usedAt: now },
+    });
+  }
+
+  if (referrer) {
+    await db.transaction.create({
+      data: {
+        userId: user.id,
+        type: "PROMO_BONUS",
+        creditsDelta: 1,
+        description: `Crédit parrainage — invitation de ${referrer.firstName}`,
+        paymentStatus: "FREE",
+      },
+    });
+    const updatedReferrer = await db.user.update({
+      where: { id: referrer.id },
+      data: { creditsBalance: { increment: 1 } },
+    });
+    await db.transaction.create({
+      data: {
+        userId: referrer.id,
+        type: "PROMO_BONUS",
+        creditsDelta: 1,
+        description: `Crédit parrainage — ${user.firstName} ${user.lastName} a rejoint le studio`,
+        paymentStatus: "FREE",
+      },
+    });
+    void sendEmail({
+      to: referrer.email,
+      ...emailTemplates.referralJoined({
+        firstName: referrer.firstName,
+        friendFirstName: user.firstName,
+        creditsEarned: 1,
+        newBalance: updatedReferrer.creditsBalance,
+      }),
     });
   }
 

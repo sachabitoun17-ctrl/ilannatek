@@ -100,6 +100,71 @@ const TEMPLATE_META: Record<
     description: "Email envoyé à un ami invité par un membre — contient un lien d'inscription avec crédit offert.",
     trigger: "Envoi d'invitation depuis /invite",
   },
+  onboardingNudge: {
+    label: "Onboarding J+1",
+    description: "Relance un nouveau membre qui n'a pas encore réservé après 1 jour.",
+    trigger: "Cron quotidien (J+1 sans réservation)",
+  },
+  onboardingLastCall: {
+    label: "Onboarding J+3",
+    description: "Dernier rappel si toujours aucune réservation 3 jours après l'inscription.",
+    trigger: "Cron quotidien (J+3 sans réservation)",
+  },
+  reminder2h: {
+    label: "Rappel 2h avant",
+    description: "Rappel envoyé 2h avant le début d'un cours confirmé.",
+    trigger: "Cron horaire",
+  },
+  postClassThankYou: {
+    label: "Merci après cours",
+    description: "Email de remerciement envoyé le matin suivant un cours suivi.",
+    trigger: "Cron quotidien (J+1 après cours)",
+  },
+  lowCredits: {
+    label: "Crédits faibles",
+    description: "Nudge envoyé aux membres actifs avec 1 crédit restant, sans achat récent.",
+    trigger: "Cron quotidien",
+  },
+  noCredits: {
+    label: "Plus de crédits",
+    description: "Notification quand le solde tombe à 0.",
+    trigger: "Déduction de crédit",
+  },
+  reengagement14d: {
+    label: "Ré-engagement 14j",
+    description: "Email avec suggestion de cours pour les membres inactifs depuis 14 jours.",
+    trigger: "Cron quotidien (14j sans activité)",
+  },
+  reengagement30d: {
+    label: "Ré-engagement 30j",
+    description: "Email motivant pour les membres inactifs depuis 30 jours.",
+    trigger: "Cron quotidien (30j sans activité)",
+  },
+  winBack60d: {
+    label: "Win-back 60j",
+    description: "Email de récupération avec code promo optionnel après 60 jours d'inactivité.",
+    trigger: "Cron quotidien (60j sans activité)",
+  },
+  streakMilestone: {
+    label: "Milestone cours",
+    description: "Félicitations à 5, 10, 25, 50, 100 ou 200 cours suivis.",
+    trigger: "Cron quotidien (après cours assisté atteignant un palier)",
+  },
+  referralJoined: {
+    label: "Parrainage accepté",
+    description: "Notifie le parrain qu'un ami vient de s'inscrire via son lien.",
+    trigger: "Inscription via lien de parrainage",
+  },
+  subscriptionRenewed: {
+    label: "Abonnement renouvelé",
+    description: "Confirmation de renouvellement automatique avec crédits accordés.",
+    trigger: "Cron abonnements (renouvellement local)",
+  },
+  accountDeleted: {
+    label: "Compte supprimé",
+    description: "Confirmation RGPD d'anonymisation du compte.",
+    trigger: "Action de suppression depuis /account/profile",
+  },
 };
 
 function previewFor(key: TemplateKey, firstName: string) {
@@ -218,6 +283,61 @@ function previewFor(key: TemplateKey, firstName: string) {
         toEmail: "ami@exemple.fr",
         acceptUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/invite/preview`,
       });
+    case "onboardingNudge":
+      return emailTemplates.onboardingNudge({ firstName, creditsBalance: 1 });
+    case "onboardingLastCall":
+      return emailTemplates.onboardingLastCall({ firstName });
+    case "reminder2h":
+      return emailTemplates.reminder2h({
+        firstName,
+        className: "Indoor Cycling",
+        startTime: new Date(Date.now() + 7200000),
+        location: "Le Marais",
+        locationAddress: "12 rue de la Roquette, Paris",
+      });
+    case "postClassThankYou":
+      return emailTemplates.postClassThankYou({
+        firstName,
+        className: "Yoga Flow",
+        instructor: "Camille Martin",
+        totalAttended: 8,
+        creditsRemaining: 3,
+      });
+    case "lowCredits":
+      return emailTemplates.lowCredits({ firstName, creditsRemaining: 1 });
+    case "noCredits":
+      return emailTemplates.noCredits({ firstName });
+    case "reengagement14d":
+      return emailTemplates.reengagement14d({
+        firstName,
+        creditsBalance: 2,
+        nextClassName: "Pilates Mat",
+        nextStartTime: new Date(Date.now() + 86400000),
+        nextLocation: "Studio Oberkampf",
+      });
+    case "reengagement30d":
+      return emailTemplates.reengagement30d({ firstName, creditsBalance: 2 });
+    case "winBack60d":
+      return emailTemplates.winBack60d({ firstName, promoCode: "RETOUR20" });
+    case "streakMilestone":
+      return emailTemplates.streakMilestone({ firstName, totalCourses: 10 });
+    case "referralJoined":
+      return emailTemplates.referralJoined({
+        firstName,
+        friendFirstName: "Marie",
+        creditsEarned: 1,
+        newBalance: 5,
+      });
+    case "subscriptionRenewed":
+      return emailTemplates.subscriptionRenewed({
+        firstName,
+        planName: "Mensuel illimité",
+        creditsAdded: 30,
+        newEndDate: new Date(Date.now() + 30 * 86400000),
+        newBalance: 32,
+      });
+    case "accountDeleted":
+      return emailTemplates.accountDeleted({ firstName });
   }
 }
 
@@ -263,7 +383,7 @@ export default async function EmailsPage() {
             </p>
           </div>
           <div>
-            <p className="label">Service d'envoi</p>
+            <p className="label">Service d&apos;envoi</p>
             {resendConfigured ? (
               <p className="text-brand-600 font-medium">
                 <span className="inline-block h-2 w-2 rounded-full bg-green-600 mr-2" />

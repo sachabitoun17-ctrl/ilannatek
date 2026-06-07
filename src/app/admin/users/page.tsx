@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { adjustCreditsAction } from "./actions";
 import RoleSelect from "./RoleSelect";
@@ -67,7 +68,9 @@ export default async function UsersPage({
             {users.map((u) => (
               <tr key={u.id}>
                 <td className="py-2 font-medium">
-                  {u.firstName} {u.lastName}
+                  <Link href={`/admin/users/${u.id}`} className="hover:text-accent-600 hover:underline">
+                    {u.firstName} {u.lastName}
+                  </Link>
                 </td>
                 <td className="hidden sm:table-cell text-stone2-600">{u.email}</td>
                 <td>{u.creditsBalance}</td>

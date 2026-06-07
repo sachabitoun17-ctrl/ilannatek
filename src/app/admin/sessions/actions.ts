@@ -16,10 +16,6 @@ const sessionSchema = z.object({
   notes: z.string().optional(),
 });
 
-const updateSessionSchema = sessionSchema.extend({
-  status: z.enum(["SCHEDULED", "CANCELLED", "COMPLETED"]).default("SCHEDULED"),
-});
-
 export async function createSessionAction(formData: FormData) {
   await requireAdmin();
   const data = sessionSchema.parse({
@@ -57,16 +53,15 @@ export async function createSessionAction(formData: FormData) {
 
 export async function updateSessionAction(id: string, formData: FormData) {
   await requireAdmin();
-  const data = updateSessionSchema.parse({
+  const data = sessionSchema.parse({
     classTypeId: formData.get("classTypeId"),
     instructorId: formData.get("instructorId"),
     locationId: formData.get("locationId"),
     startTime: formData.get("startTime"),
     capacity: formData.get("capacity"),
     notes: formData.get("notes") || undefined,
-    status: formData.get("status") || undefined,
   });
-  const { status } = data;
+  const status = formData.get("status")?.toString() ?? "SCHEDULED";
 
   const classType = await db.classType.findUnique({
     where: { id: data.classTypeId },
@@ -95,6 +90,7 @@ export async function updateSessionAction(id: string, formData: FormData) {
     },
   });
 
+  // Notify members when session transitions to CANCELLED
   if (status === "CANCELLED" && existing?.status !== "CANCELLED") {
     await notifySessionCancelled(id, existing?.classType?.name ?? "Séance", existing?.startTime ?? start, existing?.classType?.creditCost ?? 0);
   }

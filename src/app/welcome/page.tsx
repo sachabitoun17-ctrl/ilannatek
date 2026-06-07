@@ -20,6 +20,7 @@ export default async function WelcomePage() {
     db.booking.count({ where: { userId: user.id } }),
   ]);
 
+  // Non-new users who somehow land here → redirect to account
   if (bookingCount > 3) redirect("/account");
 
   const steps = [
@@ -78,6 +79,7 @@ export default async function WelcomePage() {
             disponible{user.creditsBalance > 1 ? "s" : ""} — suffisant pour réserver votre premier cours.
           </p>
 
+          {/* Prochaine séance en avant */}
           {nextSession && (
             <div className="inline-block bg-white/10 border border-white/20 px-6 py-4 text-left mb-8 max-w-sm w-full">
               <p className="text-[9px] uppercase tracking-[0.3em] text-accent-300 mb-2">
@@ -152,7 +154,7 @@ export default async function WelcomePage() {
           </h2>
 
           <div className="space-y-4">
-            {steps.map((step) => (
+            {steps.map((step, idx) => (
               <div
                 key={step.number}
                 className={`flex flex-col sm:flex-row items-start sm:items-center gap-6 p-7 border ${

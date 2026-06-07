@@ -18,6 +18,8 @@ export default function RegisterPage() {
   const [state, action] = useFormState(registerAction, null);
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
+  const refCode = searchParams.get("ref");
+  const hasReferral = !!(inviteToken || refCode);
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center -mx-4 md:-mx-8 -my-10 md:my-0">
@@ -57,11 +59,14 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {inviteToken && (
-              <div className="mb-6 bg-accent-50 border border-accent-200 px-4 py-3">
+            {hasReferral && (
+              <div className="mb-6 flex items-start gap-3 bg-accent-50 border border-accent-200 px-4 py-3">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-600 shrink-0 mt-0.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
                 <p className="text-sm text-accent-700">
-                  Invitation détectée — vous recevrez{" "}
-                  <strong>1 crédit offert</strong> à l&apos;inscription.
+                  Lien d&apos;invitation — vous recevrez{" "}
+                  <strong>1 crédit offert</strong> à l&apos;inscription, et votre parrain aussi.
                 </p>
               </div>
             )}
@@ -69,6 +74,9 @@ export default function RegisterPage() {
             <form action={action} className="space-y-5">
               {inviteToken && (
                 <input type="hidden" name="inviteToken" value={inviteToken} />
+              )}
+              {refCode && !inviteToken && (
+                <input type="hidden" name="refCode" value={refCode} />
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
