@@ -7,6 +7,7 @@ import { audit } from "@/lib/audit";
 
 export async function freezeCredits(weeks: number) {
   const user = await requireUser();
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 12) throw new Error("Durée invalide (1–12 semaines)");
 
   const frozenUntil = new Date(Date.now() + weeks * 7 * 24 * 60 * 60 * 1000);
 

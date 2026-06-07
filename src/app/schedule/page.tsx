@@ -61,7 +61,14 @@ export default async function SchedulePage({
       instructor: { select: { id: true, firstName: true, lastName: true, instructorBio: true } },
       location: true,
       bookings: {
-        select: { id: true, userId: true, status: true, waitlistPos: true },
+        where: { status: { not: "CANCELLED" } },
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          waitlistPos: true,
+          user: { select: { firstName: true, attendeeVisible: true } },
+        },
       },
       checkIns: { select: { userId: true } },
     },
@@ -176,6 +183,12 @@ export default async function SchedulePage({
         },
         location: { name: s.location.name, address: s.location.address },
         myBooking: my,
+        // Only expose attendees to logged-in users; only those who opted in
+        attendees: user
+          ? s.bookings
+              .filter((b) => b.status === "CONFIRMED" && b.userId !== user.id && b.user.attendeeVisible)
+              .map((b) => b.user.firstName)
+          : [],
       };
     }),
   }));

@@ -83,9 +83,10 @@ export async function registerAction(
   const refCodeStr = typeof rawRefCode === "string" && rawRefCode.trim() ? rawRefCode.trim() : null;
   if (!validInvite && refCodeStr) {
     const referrerId = decodeRefCode(refCodeStr);
+    // Self-referral guard: referrerId must not be the registering email's account
     if (referrerId) {
       const found = await db.user.findFirst({
-        where: { id: referrerId, active: true },
+        where: { id: referrerId, active: true, email: { not: parsed.data.email.toLowerCase() } },
         select: { id: true, email: true, firstName: true, lastName: true },
       });
       if (found) referrer = found;
@@ -118,34 +119,37 @@ export async function registerAction(
   }
 
   if (validInvite) {
-    await db.transaction.create({
-      data: {
-        userId: user.id,
-        type: "PROMO_BONUS",
-        creditsDelta: validInvite.creditsGranted,
-        description: `Crédit invitation de ${validInvite.from.firstName}`,
-        paymentStatus: "FREE",
-      },
-    });
-
-    await db.user.update({
-      where: { id: validInvite.fromUserId },
-      data: { creditsBalance: { increment: validInvite.creditsGranted } },
-    });
-    await db.transaction.create({
-      data: {
-        userId: validInvite.fromUserId,
-        type: "PROMO_BONUS",
-        creditsDelta: validInvite.creditsGranted,
-        description: `Crédit parrainage — ${user.firstName} ${user.lastName} a rejoint le studio`,
-        paymentStatus: "FREE",
-      },
-    });
-
-    await db.friendInvite.update({
-      where: { id: validInvite.id },
+    // Atomic: mark invite as used AND grant credits in one transaction (prevents double-use on concurrent registrations)
+    const updated = await db.friendInvite.updateMany({
+      where: { id: validInvite.id, usedAt: null },
       data: { usedAt: now },
     });
+    if (updated.count === 1) {
+      await db.$transaction([
+        db.transaction.create({
+          data: {
+            userId: user.id,
+            type: "PROMO_BONUS",
+            creditsDelta: validInvite.creditsGranted,
+            description: `Crédit invitation de ${validInvite.from.firstName}`,
+            paymentStatus: "FREE",
+          },
+        }),
+        db.user.update({
+          where: { id: validInvite.fromUserId },
+          data: { creditsBalance: { increment: validInvite.creditsGranted } },
+        }),
+        db.transaction.create({
+          data: {
+            userId: validInvite.fromUserId,
+            type: "PROMO_BONUS",
+            creditsDelta: validInvite.creditsGranted,
+            description: `Crédit parrainage — ${user.firstName} ${user.lastName} a rejoint le studio`,
+            paymentStatus: "FREE",
+          },
+        }),
+      ]);
+    }
   }
 
   if (referrer) {

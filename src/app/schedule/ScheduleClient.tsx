@@ -31,6 +31,7 @@ type SessionItem = {
   };
   location: { name: string; address: string | null };
   myBooking: { id: string; status: string; waitlistPos: number | null } | null;
+  attendees: string[];
 };
 
 type Day = { date: string; sessions: SessionItem[] };
@@ -612,6 +613,20 @@ function SessionDetailPanel({
               />
             </div>
           </div>
+
+          {/* Qui vient ? */}
+          {s.attendees.length > 0 && (
+            <div className="border border-stone2-100 bg-cream-50 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-widest text-stone2-500 mb-2">Qui vient ?</p>
+              <p className="text-sm text-brand-600">
+                {s.attendees.length === 1
+                  ? `${s.attendees[0]} vient à ce cours`
+                  : s.attendees.length === 2
+                  ? `${s.attendees[0]} et ${s.attendees[1]} viennent`
+                  : `${s.attendees[0]}, ${s.attendees[1]} et ${s.attendees.length - 2} autre${s.attendees.length - 2 > 1 ? "s" : ""}`}
+              </p>
+            </div>
+          )}
 
           {/* Cost */}
           <div className="flex items-center justify-between bg-cream-100 border border-stone2-200 px-4 py-3">

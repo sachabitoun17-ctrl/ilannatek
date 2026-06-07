@@ -63,6 +63,20 @@ export default async function ProfilePage({
             placeholder="+33 6 00 00 00 00"
           />
         </div>
+        <div className="flex items-start gap-3 pt-1">
+          <input
+            type="checkbox"
+            name="attendeeVisible"
+            id="attendeeVisible"
+            value="1"
+            defaultChecked={(user as { attendeeVisible?: boolean }).attendeeVisible ?? false}
+            className="mt-0.5 h-4 w-4 rounded border-stone2-300 accent-brand-600"
+          />
+          <label htmlFor="attendeeVisible" className="text-sm text-stone2-700 cursor-pointer">
+            Afficher mon prénom dans la liste des participants<br />
+            <span className="text-xs text-stone2-400">Les autres membres verront votre prénom sur les cours en commun.</span>
+          </label>
+        </div>
         <SubmitButton label="Enregistrer" pendingLabel="Enregistrement..." />
       </form>
 

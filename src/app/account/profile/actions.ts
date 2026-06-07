@@ -5,14 +5,18 @@ import { db } from "@/lib/db";
 import { requireUser, hashPassword, verifyPassword, clearSessionCookie } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { rateLimit, LIMITS } from "@/lib/rate-limit";
 
 export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
+  const rl = rateLimit(`profile:${user.id}`, LIMITS.PROFILE_UPDATE_PER_USER.max, LIMITS.PROFILE_UPDATE_PER_USER.windowMs);
+  if (!rl.allowed) redirect("/account/profile?error=Trop+de+modifications.+Réessayez+dans+quelques+minutes.");
 
   const firstName = formData.get("firstName")?.toString().trim();
   const lastName = formData.get("lastName")?.toString().trim();
   const email = formData.get("email")?.toString().toLowerCase().trim();
   const phone = formData.get("phone")?.toString().trim() || null;
+  const attendeeVisible = formData.get("attendeeVisible") === "1";
 
   if (!firstName || !lastName || !email) {
     redirect("/account/profile?error=Champs+obligatoires+manquants");
@@ -26,9 +30,14 @@ export async function updateProfileAction(formData: FormData) {
     }
   }
 
+  const emailChanged = email !== user.email;
   await db.user.update({
     where: { id: user.id },
-    data: { firstName, lastName, email, phone },
+    data: {
+      firstName, lastName, email, phone, attendeeVisible,
+      // bump sessionVersion on email change to invalidate existing sessions
+      ...(emailChanged ? { sessionVersion: { increment: 1 } } : {}),
+    },
   });
 
   void audit({ actorId: user.id, action: "UPDATE_PROFILE", entity: "User", entityId: user.id });
@@ -38,6 +47,8 @@ export async function updateProfileAction(formData: FormData) {
 
 export async function changePasswordAction(formData: FormData) {
   const user = await requireUser();
+  const rl = rateLimit(`pwd:${user.id}`, LIMITS.PASSWORD_CHANGE_PER_USER.max, LIMITS.PASSWORD_CHANGE_PER_USER.windowMs);
+  if (!rl.allowed) redirect("/account/profile?error=Trop+de+tentatives.+Réessayez+dans+15+minutes.");
 
   const current = formData.get("current")?.toString();
   const password = formData.get("password")?.toString();
@@ -84,7 +95,7 @@ export async function deleteAccountAction(formData: FormData) {
   }
 
   // Send confirmation email BEFORE anonymizing (we need the real email)
-  void sendEmail({
+  await sendEmail({
     to: user.email,
     ...emailTemplates.accountDeleted({ firstName: user.firstName }),
   });

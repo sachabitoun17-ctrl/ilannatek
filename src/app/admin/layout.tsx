@@ -42,6 +42,7 @@ export default async function AdminLayout({
       items: [
         { href: "/admin/users", label: "Membres" },
         { href: "/admin/bookings", label: "Réservations" },
+        { href: "/admin/churn", label: "Risque churn" },
       ],
     },
     {

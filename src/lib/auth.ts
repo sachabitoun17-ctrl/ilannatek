@@ -7,10 +7,10 @@ import { db } from "./db";
 
 function getSecret() {
   const s = process.env.AUTH_SECRET;
-  if (!s && process.env.NODE_ENV === "production") {
-    throw new Error("AUTH_SECRET env var is required in production");
+  if (!s) {
+    throw new Error("AUTH_SECRET env var is required — set it in .env.local");
   }
-  return new TextEncoder().encode(s ?? "dev-secret-change-me-in-production");
+  return new TextEncoder().encode(s);
 }
 const COOKIE_NAME = "ilannatek_session";
 const SESSION_DAYS = 30;

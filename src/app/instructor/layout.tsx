@@ -22,6 +22,9 @@ export default async function InstructorLayout({
           <Link href="/instructor" className="text-stone2-600 hover:text-brand-600 transition-colors">
             Mes cours
           </Link>
+          <Link href="/instructor/calendar" className="text-stone2-600 hover:text-brand-600 transition-colors">
+            Calendrier
+          </Link>
           <Link href="/instructor/check-in" className="text-stone2-600 hover:text-brand-600 transition-colors">
             Check-in
           </Link>

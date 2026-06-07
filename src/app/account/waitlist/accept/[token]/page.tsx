@@ -38,13 +38,15 @@ async function confirmWaitlistBooking(formData: FormData) {
   const session = booking.session;
   const cost = session.classType.creditCost;
 
-  // Check credits
-  if (user.creditsBalance < cost) {
-    redirect(`/account/waitlist/accept/${token}?error=insufficient_credits`);
-  }
-
-  // Confirm inside a transaction
+  // Credit check is inside the transaction to prevent TOCTOU race (concurrent requests)
+  let insufficientCredits = false;
   await db.$transaction(async (tx) => {
+    const freshUser = await tx.user.findUnique({ where: { id: user.id }, select: { creditsBalance: true } });
+    if (!freshUser || freshUser.creditsBalance < cost) {
+      insufficientCredits = true;
+      return;
+    }
+
     // Mark token used
     await tx.waitlistToken.update({
       where: { id: waitlistToken.id },
@@ -93,6 +95,7 @@ async function confirmWaitlistBooking(formData: FormData) {
       }
     }
   });
+  if (insufficientCredits) redirect(`/account/waitlist/accept/${token}?error=insufficient_credits`);
 
   // Audit
   void audit({

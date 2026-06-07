@@ -31,22 +31,26 @@ export async function markAttendanceAction(
     });
 
     if (status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0) {
-      const fee = settings.noShowFee;
-      const updated = await tx.user.update({
-        where: { id: booking.userId },
-        data: { creditsBalance: { decrement: fee } },
-        select: { creditsBalance: true },
-      });
-      newBalance = updated.creditsBalance;
-      await tx.transaction.create({
-        data: {
-          userId: booking.userId,
-          type: "NO_SHOW_FEE",
-          creditsDelta: -fee,
-          description: `Frais d'absence — ${booking.session.classType.name}`,
-          paymentStatus: "FREE",
-        },
-      });
+      // Re-read balance inside tx; cap fee so balance never goes negative
+      const freshUser = await tx.user.findUnique({ where: { id: booking.userId }, select: { creditsBalance: true } });
+      const fee = Math.min(settings.noShowFee, freshUser?.creditsBalance ?? 0);
+      if (fee > 0) {
+        const updated = await tx.user.update({
+          where: { id: booking.userId },
+          data: { creditsBalance: { decrement: fee } },
+          select: { creditsBalance: true },
+        });
+        newBalance = updated.creditsBalance;
+        await tx.transaction.create({
+          data: {
+            userId: booking.userId,
+            type: "NO_SHOW_FEE",
+            creditsDelta: -fee,
+            description: `Frais d'absence — ${booking.session.classType.name}`,
+            paymentStatus: "FREE",
+          },
+        });
+      }
     }
   });
 

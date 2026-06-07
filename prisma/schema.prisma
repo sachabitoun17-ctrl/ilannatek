@@ -31,6 +31,8 @@ model User {
   banned          Boolean  @default(false)
   // freeze credits until this date (self-service holiday pause)
   creditsFrozenUntil DateTime?
+  // opt-in: show first name on session attendee list to other members
+  attendeeVisible Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

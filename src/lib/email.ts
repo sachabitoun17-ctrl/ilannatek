@@ -50,7 +50,17 @@ export async function sendEmail(opts: SendOpts): Promise<void> {
   );
 }
 
-// ─── Brand-consistent HTML wrapper ─────────────────────────────────────────────
+// ─── HTML helpers ───────────────────────────────────────────────────────────────
+
+/** Escape user-controlled strings for safe HTML interpolation. */
+function esc(s: string | undefined | null): string {
+  return (s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 const baseStyle = `
   <style>
@@ -88,7 +98,7 @@ export const emailTemplates = {
   welcome: (firstName: string) => ({
     subject: `Bienvenue chez Ilannatek, ${firstName}`,
     html: wrap(
-      `Bienvenue, ${firstName}`,
+      `Bienvenue, ${esc(firstName)}`,
       `<p>Votre compte est créé. Consultez le planning et réservez vos premiers cours.</p>
        <div class="highlight">Votre solde de démarrage a été crédité — vérifiez votre compte.</div>
        <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/schedule">Voir le planning →</a></p>`
@@ -105,7 +115,7 @@ export const emailTemplates = {
     subject: `Réservation confirmée — ${args.className}`,
     html: wrap(
       `${args.className}`,
-      `<p>Bonjour ${args.firstName}, votre place est confirmée.</p>
+      `<p>Bonjour ${esc(args.firstName)}, votre place est confirmée.</p>
        <div style="margin:20px 0">
          <div class="detail-row"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong></div>
          <div class="detail-row"><span class="detail-label">Heure</span><strong>${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
@@ -126,7 +136,7 @@ export const emailTemplates = {
     subject: `Liste d'attente #${args.position} — ${args.className}`,
     html: wrap(
       `Liste d'attente`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Le cours <strong>${args.className}</strong> est complet.</p>
        <div class="highlight">Vous êtes en position <strong>#${args.position}</strong> sur la liste d'attente. Nous vous prévenons immédiatement si une place se libère.</div>
        <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/account">Mon espace →</a></p>`
@@ -141,7 +151,7 @@ export const emailTemplates = {
     subject: `Place obtenue — ${args.className}`,
     html: wrap(
       `Bonne nouvelle !`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Une place s'est libérée pour <strong>${args.className}</strong>.</p>
        <div class="highlight">
          <strong>Vous êtes inscrit·e</strong> — ${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
@@ -160,7 +170,7 @@ export const emailTemplates = {
     subject: `Annulation — ${args.className}`,
     html: wrap(
       `Réservation annulée`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre réservation pour <strong>${args.className}</strong> est annulée.</p>
        ${args.refunded > 0 ? `<div class="highlight">✓ ${args.refunded} crédit${args.refunded > 1 ? "s" : ""} recrédité${args.refunded > 1 ? "s" : ""} sur votre solde.</div>` : ""}
        ${args.feeApplied && args.feeApplied > 0 ? `<p class="muted">Frais d'annulation tardive : ${args.feeApplied} crédit${args.feeApplied > 1 ? "s" : ""} retenus.</p>` : ""}
@@ -177,7 +187,7 @@ export const emailTemplates = {
     subject: `Frais d'absence — ${args.className}`,
     html: wrap(
       `Frais d'absence`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Vous étiez inscrit·e à <strong>${args.className}</strong> mais ne vous êtes pas présenté·e.</p>
        <div class="highlight">
          ${args.fee} crédit${args.fee > 1 ? "s" : ""} de frais d'absence ont été retenus.<br/>
@@ -198,7 +208,7 @@ export const emailTemplates = {
     subject: `Reçu — ${args.planName}`,
     html: wrap(
       `Reçu d'achat`,
-      `<p>Bonjour ${args.firstName}, merci pour votre achat.</p>
+      `<p>Bonjour ${esc(args.firstName)}, merci pour votre achat.</p>
        <div style="margin:20px 0">
          <div class="detail-row"><span class="detail-label">Produit</span><strong>${args.planName}</strong></div>
          <div class="detail-row"><span class="detail-label">Montant</span><strong>${(args.amountCents / 100).toFixed(2)} €</strong></div>
@@ -217,7 +227,7 @@ export const emailTemplates = {
     subject: `Rappel — ${args.className} demain`,
     html: wrap(
       `À demain !`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <div class="highlight">
          <strong>${args.className}</strong><br/>
          ${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}<br/>
@@ -236,7 +246,7 @@ export const emailTemplates = {
     subject: `Votre abonnement expire dans ${args.daysLeft} jours`,
     html: wrap(
       `Renouvellement à venir`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre abonnement <strong>${args.planName}</strong> expire le <strong>${args.endDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</strong>.</p>
        <div class="highlight">Il vous reste <strong>${args.daysLeft} jour${args.daysLeft > 1 ? "s" : ""}</strong> pour continuer à profiter de vos crédits.</div>
        <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/subscriptions">Renouveler mon abonnement →</a></p>`
@@ -256,8 +266,8 @@ export const emailTemplates = {
     subject: `Nouvelle inscription — ${args.className}`,
     html: wrap(
       `Nouvelle inscription`,
-      `<p>Bonjour ${args.instructorFirstName},</p>
-       <p><strong>${args.memberFirstName} ${args.memberLastName}</strong> vient de s'inscrire à votre cours.</p>
+      `<p>Bonjour ${esc(args.instructorFirstName)},</p>
+       <p><strong>${esc(args.memberFirstName)} ${esc(args.memberLastName)}</strong> vient de s'inscrire à votre cours.</p>
        <div style="margin:20px 0">
          <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
          <div class="detail-row"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
@@ -271,7 +281,7 @@ export const emailTemplates = {
     subject: `Abonnement annulé — ${args.planName}`,
     html: wrap(
       `Abonnement annulé`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre abonnement <strong>${args.planName}</strong> a été annulé. Vos crédits restants sont conservés.</p>
        <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/subscriptions">Voir nos abonnements →</a></p>`
     ),
@@ -281,7 +291,7 @@ export const emailTemplates = {
     subject: `Échec du paiement — ${args.planName}`,
     html: wrap(
       `Échec du paiement`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Le renouvellement de votre abonnement <strong>${args.planName}</strong> n'a pas pu être débité.</p>
        <div class="highlight">Votre abonnement a été suspendu. Mettez à jour votre moyen de paiement pour continuer à profiter du studio.</div>
        <p style="margin-top:24px"><a class="btn btn-accent" href="${siteUrl()}/subscriptions">Mettre à jour mon paiement →</a></p>`
@@ -297,7 +307,7 @@ export const emailTemplates = {
     subject: `Séance annulée — ${args.className}`,
     html: wrap(
       `Séance annulée`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Nous avons dû annuler la séance suivante :</p>
        <div style="margin:20px 0">
          <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
@@ -313,7 +323,7 @@ export const emailTemplates = {
     subject: "Réinitialisation de votre mot de passe",
     html: wrap(
       `Réinitialiser votre mot de passe`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Vous avez demandé à réinitialiser votre mot de passe. Ce lien expire dans <strong>1 heure</strong>.</p>
        <p style="margin-top:24px"><a class="btn" href="${args.resetUrl}">Choisir un nouveau mot de passe →</a></p>
        <hr class="divider"/>
@@ -325,7 +335,7 @@ export const emailTemplates = {
     subject: `Abonnement mis en pause — ${args.planName}`,
     html: wrap(
       `Abonnement mis en pause`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre abonnement <strong>${args.planName}</strong> est mis en pause. Il ne sera pas renouvelé tant qu'il reste gelé.</p>
        <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/account">Reprendre mon abonnement →</a></p>`
     ),
@@ -335,7 +345,7 @@ export const emailTemplates = {
     subject: `Abonnement repris — ${args.planName}`,
     html: wrap(
       `Abonnement repris`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre abonnement <strong>${args.planName}</strong> est à nouveau actif jusqu'au <strong>${args.endDate.toLocaleDateString("fr-FR")}</strong>.</p>
        <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/schedule">Voir le planning →</a></p>`
     ),
@@ -346,10 +356,10 @@ export const emailTemplates = {
     html: wrap(
       `Vous êtes invité·e !`,
       `<p>Bonjour,</p>
-       <p><strong>${args.fromName}</strong> vous invite à rejoindre le studio Ilannatek.</p>
+       <p><strong>${esc(args.fromName)}</strong> vous invite à rejoindre le studio Ilannatek.</p>
        <div class="highlight">
          <strong>Offre spéciale :</strong> créez votre compte via ce lien et recevez <strong>1 crédit offert</strong> pour votre premier cours.<br/>
-         <span class="muted">${args.fromName} en recevra un aussi — une façon de venir en duo !</span>
+         <span class="muted">${esc(args.fromName)} en recevra un aussi — une façon de venir en duo !</span>
        </div>
        <p style="margin-top:28px;text-align:center">
          <a class="btn btn-accent" href="${args.acceptUrl}" style="font-size:13px;padding:16px 36px">Créer mon compte et obtenir mon crédit →</a>
@@ -369,7 +379,7 @@ export const emailTemplates = {
     subject: `Une place s'est libérée — ${args.className}`,
     html: wrap(
       `Bonne nouvelle !`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Une place vient de se libérer pour <strong>${args.className}</strong>.</p>
        <div class="highlight">
          Vous avez <strong>30 minutes</strong> pour confirmer votre présence.<br/>
@@ -395,7 +405,7 @@ export const emailTemplates = {
     subject: `${args.firstName}, votre crédit attend son premier cours`,
     html: wrap(
       `Votre crédit vous attend`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Vous vous êtes inscrit·e hier — bienvenue à nouveau. Vous avez <strong>${args.creditsBalance} crédit${args.creditsBalance > 1 ? "s" : ""}</strong> sur votre compte, prêt à être utilisé.</p>
        <div class="highlight">Le premier cours est souvent le plus difficile à planifier. Parcourez le planning — des créneaux sont disponibles dès aujourd'hui.</div>
        <p style="margin:24px 0"><a class="btn btn-accent" href="${siteUrl()}/schedule">Trouver mon premier cours →</a></p>
@@ -409,7 +419,7 @@ export const emailTemplates = {
     subject: `${args.firstName} — votre place au studio vous attend encore`,
     html: wrap(
       `C'est le moment`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Cela fait quelques jours depuis votre inscription. Votre crédit est toujours là.</p>
        <div class="highlight">Commencez par un cours découverte — conçus pour tous les niveaux, ils vous donneront une idée claire de ce qui vous convient.</div>
        <p>Le planning est mis à jour en continu. Filtrez par discipline, par horaire ou par instructeur.</p>
@@ -432,7 +442,7 @@ export const emailTemplates = {
     subject: `Dans 2h : ${args.className}`,
     html: wrap(
       `C'est dans 2h`,
-      `<p>Bonjour ${args.firstName}, votre cours commence bientôt.</p>
+      `<p>Bonjour ${esc(args.firstName)}, votre cours commence bientôt.</p>
        <div class="highlight">
          <strong>${args.className}</strong><br/>
          ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} aujourd'hui · ${args.location}
@@ -458,7 +468,7 @@ export const emailTemplates = {
     subject: `Bravo pour aujourd'hui, ${args.firstName}`,
     html: wrap(
       `Bien joué !`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Merci d'avoir été là pour <strong>${args.className}</strong> avec ${args.instructor}.</p>
        <div class="highlight">
          ${args.totalAttended >= 10
@@ -479,7 +489,7 @@ export const emailTemplates = {
     subject: `Il vous reste ${args.creditsRemaining} crédit — pensez à recharger`,
     html: wrap(
       `Votre solde est bas`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Il ne vous reste que <strong>${args.creditsRemaining} crédit</strong> sur votre compte.</p>
        <div class="highlight">Rechargez maintenant pour ne pas manquer vos prochains cours. Les packs sont disponibles sans abonnement.</div>
        <div style="margin:20px 0;border:1px solid #DDD5C5;padding:20px">
@@ -510,7 +520,7 @@ export const emailTemplates = {
     subject: `Vos crédits sont épuisés — revenez au studio`,
     html: wrap(
       `Solde épuisé`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre solde de crédits est à zéro. Pour réserver votre prochain cours, rechargez votre compte.</p>
        <div class="highlight">
          <strong>Pack ponctuel</strong> — idéal pour 1 à 2 cours par mois, sans engagement.<br/>
@@ -537,7 +547,7 @@ export const emailTemplates = {
     subject: `${args.firstName}, ça fait 2 semaines…`,
     html: wrap(
       `On ne vous a pas vu`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Cela fait deux semaines que nous ne vous avons pas vu au studio. Vos <strong>${args.creditsBalance} crédit${args.creditsBalance !== 1 ? "s" : ""}</strong> vous attendent toujours.</p>
        ${args.nextClassName && args.nextStartTime && args.nextLocation ? `
        <div class="highlight">
@@ -556,7 +566,7 @@ export const emailTemplates = {
     subject: `Votre pratique vous attend, ${args.firstName}`,
     html: wrap(
       `Un mois déjà`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Cela fait un mois depuis votre dernier cours. La pratique régulière fait toute la différence — et le plus dur c'est souvent de recommencer.</p>
        ${args.creditsBalance > 0
          ? `<div class="highlight">Vous avez encore <strong>${args.creditsBalance} crédit${args.creditsBalance !== 1 ? "s" : ""}</strong> — aucune raison d'attendre.</div>`
@@ -574,10 +584,10 @@ export const emailTemplates = {
     subject: `Deux mois — on vous a gardé une place, ${args.firstName}`,
     html: wrap(
       `Revenez, on vous attend`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Cela fait deux mois depuis votre dernier cours. Votre compte est toujours actif et votre espace vous attend.</p>
        ${args.promoCode
-         ? `<div class="highlight"><strong>Pour marquer votre retour</strong> — utilisez le code <strong style="font-size:18px;letter-spacing:0.12em;color:#1C1C1A">${args.promoCode}</strong> lors de votre prochain achat.</div>`
+         ? `<div class="highlight"><strong>Pour marquer votre retour</strong> — utilisez le code <strong style="font-size:18px;letter-spacing:0.12em;color:#1C1C1A">${esc(args.promoCode)}</strong> lors de votre prochain achat.</div>`
          : `<div class="highlight">Le planning est renouvelé régulièrement. Nouvelles disciplines, nouveaux créneaux, nouveaux instructeurs.</div>`
        }
        <p style="margin:24px 0;text-align:center">
@@ -595,7 +605,7 @@ export const emailTemplates = {
     subject: `${args.totalCourses} cours — vous faites partie des piliers du studio`,
     html: wrap(
       `${args.totalCourses} cours au compteur`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Vous venez d'atteindre <strong>${args.totalCourses} cours</strong> au studio Ilannatek.</p>
        <div style="text-align:center;padding:32px 0;border:1px solid #DDD5C5;margin:20px 0">
          <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:72px;font-weight:600;color:#A07B3A;margin:0;line-height:1">${args.totalCourses}</p>
@@ -618,8 +628,8 @@ export const emailTemplates = {
     subject: `${args.friendFirstName} a rejoint le studio — +${args.creditsEarned} crédit pour vous`,
     html: wrap(
       `Votre filleul a rejoint le studio !`,
-      `<p>Bonjour ${args.firstName},</p>
-       <p><strong>${args.friendFirstName}</strong> vient de créer son compte chez Ilannatek grâce à votre lien de parrainage.</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
+       <p><strong>${esc(args.friendFirstName)}</strong> vient de créer son compte chez Ilannatek grâce à votre lien de parrainage.</p>
        <div class="highlight">
          <strong>+${args.creditsEarned} crédit</strong> ajouté à votre compte — merci de faire grandir la communauté.<br/>
          <span class="muted">Solde actuel : ${args.newBalance} crédit${args.newBalance !== 1 ? "s" : ""}</span>
@@ -642,7 +652,7 @@ export const emailTemplates = {
     subject: `Abonnement renouvelé — ${args.planName}`,
     html: wrap(
       `Renouvellement automatique`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre abonnement <strong>${args.planName}</strong> a été renouvelé automatiquement.</p>
        <div style="margin:20px 0">
          <div class="detail-row"><span class="detail-label">Crédits ajoutés</span><strong>+${args.creditsAdded} crédit${args.creditsAdded !== 1 ? "s" : ""}</strong></div>
@@ -662,7 +672,7 @@ export const emailTemplates = {
     subject: `Votre compte Ilannatek a été supprimé`,
     html: wrap(
       `Compte supprimé`,
-      `<p>Bonjour ${args.firstName},</p>
+      `<p>Bonjour ${esc(args.firstName)},</p>
        <p>Votre compte Ilannatek a bien été supprimé. Vos données personnelles ont été anonymisées conformément au RGPD (Art. 17).</p>
        <div class="highlight">
          <strong>Supprimé :</strong> nom, prénom, adresse email, téléphone, tokens de session.<br/>

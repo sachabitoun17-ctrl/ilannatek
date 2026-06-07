@@ -62,6 +62,7 @@ export async function updateSessionAction(id: string, formData: FormData) {
     notes: formData.get("notes") || undefined,
   });
   const status = formData.get("status")?.toString() ?? "SCHEDULED";
+  if (!["SCHEDULED", "CANCELLED", "COMPLETED"].includes(status)) throw new Error("Statut invalide");
 
   const classType = await db.classType.findUnique({
     where: { id: data.classTypeId },

@@ -9,16 +9,26 @@ export async function resetPasswordAction(formData: FormData) {
   const password = formData.get("password")?.toString();
   const confirm = formData.get("passwordConfirm")?.toString();
 
-  if (!token || !password || !confirm) {
-    redirect(`/reset-password?token=${token}&error=Champs+manquants`);
+  // Validate all fields BEFORE touching the token in any redirect URL
+  if (!token) {
+    redirect("/forgot-password?error=Lien+invalide");
+  }
+
+  if (!password || !confirm) {
+    // Token is passed as a hidden input — keep it out of the URL
+    redirect("/reset-password?error=Champs+manquants");
   }
 
   if (password !== confirm) {
-    redirect(`/reset-password?token=${token}&error=Les+mots+de+passe+ne+correspondent+pas`);
+    redirect("/reset-password?error=Les+mots+de+passe+ne+correspondent+pas");
   }
 
   if (password.length < 8) {
-    redirect(`/reset-password?token=${token}&error=8+caractères+minimum`);
+    redirect("/reset-password?error=8+caractères+minimum");
+  }
+
+  if (token.length > 512) {
+    redirect("/forgot-password?error=Lien+invalide");
   }
 
   const record = await db.passwordResetToken.findUnique({ where: { token } });
@@ -31,7 +41,6 @@ export async function resetPasswordAction(formData: FormData) {
   await db.$transaction([
     db.user.update({
       where: { id: record.userId },
-      // bump sessionVersion to invalidate all existing JWTs
       data: { passwordHash, sessionVersion: { increment: 1 } },
     }),
     db.passwordResetToken.update({

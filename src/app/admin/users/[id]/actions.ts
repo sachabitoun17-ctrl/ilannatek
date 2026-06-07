@@ -67,6 +67,7 @@ export async function adminFreezeCreditsAction(formData: FormData) {
   if (!userId) return;
 
   const until = untilStr ? new Date(untilStr) : null;
+  if (until && (isNaN(until.getTime()) || until <= new Date())) return;
 
   await db.user.update({
     where: { id: userId },
@@ -124,7 +125,7 @@ export async function adminSetRoleAction(formData: FormData) {
   const role = formData.get("role")?.toString();
   if (!userId || !role || !["USER", "INSTRUCTOR", "ADMIN"].includes(role)) return;
 
-  await db.user.update({ where: { id: userId }, data: { role } });
+  await db.user.update({ where: { id: userId }, data: { role, sessionVersion: { increment: 1 } } });
 
   void audit({
     actorId: admin.id,
@@ -147,6 +148,7 @@ export async function adminRefundBookingAction(formData: FormData) {
     include: { user: true, session: { include: { classType: true } } },
   });
   if (!booking || booking.creditsUsed === 0) return;
+  if (booking.status === "CANCELLED") return;
 
   await db.$transaction([
     db.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED", cancelledAt: new Date() } }),

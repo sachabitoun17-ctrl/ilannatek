@@ -83,7 +83,7 @@ export async function sendInviteAction(
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const acceptUrl = `${siteUrl}/invite/${token}`;
 
-  const fromName = `${user.firstName} ${user.lastName}`;
+  const fromName = `${user.firstName} ${user.lastName}`.replace(/[\r\n\t]/g, " ").slice(0, 100);
 
   void sendEmail({
     to: toEmail,

@@ -134,7 +134,7 @@ function buildRecapHtml(args: {
   creditsBalance: number;
   upcomingBookings: { className: string; startTime: Date }[];
 }): string {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ilannatek.fr";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ilannatek.fr";
 
   const upcomingRows =
     args.upcomingBookings.length > 0

@@ -46,9 +46,13 @@ export function rateLimit(
 }
 
 export const LIMITS = {
-  LOGIN_PER_EMAIL: { max: 5, windowMs: 15 * 60 * 1000 }, // 5 attempts per 15min
-  LOGIN_PER_IP: { max: 20, windowMs: 15 * 60 * 1000 },   // 20 attempts per 15min
-  REGISTER_PER_IP: { max: 5, windowMs: 60 * 60 * 1000 }, // 5 registrations per hour
-  BOOKING_PER_USER: { max: 30, windowMs: 60 * 1000 },    // 30 bookings per minute (UX safety)
-  CHECKOUT_PER_USER: { max: 10, windowMs: 60 * 1000 },   // 10 checkout per minute
+  LOGIN_PER_EMAIL: { max: 5, windowMs: 15 * 60 * 1000 },          // 5 attempts per 15min
+  LOGIN_PER_IP: { max: 20, windowMs: 15 * 60 * 1000 },            // 20 attempts per 15min
+  REGISTER_PER_IP: { max: 5, windowMs: 60 * 60 * 1000 },          // 5 registrations per hour
+  BOOKING_PER_USER: { max: 30, windowMs: 60 * 1000 },             // 30 bookings per minute (UX safety)
+  CHECKOUT_PER_USER: { max: 10, windowMs: 60 * 1000 },            // 10 checkout per minute
+  PROFILE_UPDATE_PER_USER: { max: 10, windowMs: 5 * 60 * 1000 },  // 10 updates per 5min
+  PASSWORD_CHANGE_PER_USER: { max: 5, windowMs: 15 * 60 * 1000 }, // 5 per 15min
+  FORGOT_PASSWORD_PER_IP: { max: 5, windowMs: 15 * 60 * 1000 },   // 5 per 15min
+  FORGOT_PASSWORD_PER_EMAIL: { max: 3, windowMs: 60 * 60 * 1000 },// 3 per hour per email
 };
