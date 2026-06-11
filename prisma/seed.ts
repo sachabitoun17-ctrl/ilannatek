@@ -392,7 +392,7 @@ async function main() {
               data: {
                 sessionId: session.id,
                 userId: waitlisters[w].id,
-                status: "WAITLISTED",
+                status: "WAITLIST",
                 creditsUsed: 0,
                 waitlistPos: w + 1,
               },

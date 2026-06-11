@@ -24,11 +24,18 @@ export async function markAttendanceAction(
   const settings = await getSettings();
   let newBalance: number | null = null;
 
+  let feeAlreadyApplied = false;
   await db.$transaction(async (tx) => {
-    await tx.booking.update({
-      where: { id: bookingId },
+    // Atomic: only apply the fee if WE transition the status (concurrent double-click
+    // on "Absent" would otherwise charge the fee twice).
+    const claim = await tx.booking.updateMany({
+      where: { id: bookingId, status: { not: status } },
       data: { status },
     });
+    if (claim.count === 0) {
+      feeAlreadyApplied = true;
+      return;
+    }
 
     if (status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0) {
       // Re-read balance inside tx; cap fee so balance never goes negative
@@ -55,7 +62,7 @@ export async function markAttendanceAction(
   });
 
   // Email notification for no-show fee
-  if (status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0 && newBalance !== null) {
+  if (!feeAlreadyApplied && status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0 && newBalance !== null) {
     void sendEmail({
       to: booking.user.email,
       ...emailTemplates.noShowFee({

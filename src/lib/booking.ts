@@ -14,6 +14,10 @@ export async function bookSession(
   const settings = await getSettings();
 
   const result = await db.$transaction(async (tx) => {
+    // Row lock: serialize concurrent bookings on the same session so the
+    // capacity check below can't race (two users both seeing the last spot free).
+    await tx.$queryRaw`SELECT id FROM "Session" WHERE id = ${sessionId} FOR UPDATE`;
+
     const session = await tx.session.findUnique({
       where: { id: sessionId },
       include: { classType: true, location: true, instructor: true },
@@ -134,6 +138,7 @@ export async function bookSession(
         userEmail: user.email,
         confirmedCount: confirmedCount + (isWaitlist ? 0 : 1),
         capacity: session.capacity,
+        balanceAfter: isWaitlist ? user.creditsBalance : user.creditsBalance - cost,
       },
     };
   });
@@ -182,6 +187,12 @@ export async function bookSession(
           className: s.className,
           position: result.position!,
         }),
+      });
+    }
+    if (result.status === "CONFIRMED" && s.balanceAfter === 0) {
+      void sendEmail({
+        to: s.userEmail,
+        ...emailTemplates.noCredits({ firstName: s.userFirstName }),
       });
     }
     return {

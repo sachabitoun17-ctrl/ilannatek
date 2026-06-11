@@ -6,6 +6,7 @@ import { requireUser, hashPassword, verifyPassword, clearSessionCookie } from "@
 import { audit } from "@/lib/audit";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { rateLimit, LIMITS } from "@/lib/rate-limit";
+import { stripeEnabled, cancelSubscription } from "@/lib/stripe";
 
 export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
@@ -92,6 +93,25 @@ export async function deleteAccountAction(formData: FormData) {
   const confirm = formData.get("confirm")?.toString();
   if (confirm !== "SUPPRIMER") {
     redirect("/account/profile?error=Tapez+SUPPRIMER+pour+confirmer");
+  }
+
+  // Cancel active Stripe subscriptions before anonymizing
+  if (stripeEnabled()) {
+    const activeSubs = await db.subscription.findMany({
+      where: { userId: user.id, status: "ACTIVE", stripeSubscriptionId: { not: null } },
+      select: { id: true, stripeSubscriptionId: true },
+    });
+    await Promise.allSettled(
+      activeSubs
+        .filter((s) => s.stripeSubscriptionId)
+        .map((s) => cancelSubscription(s.stripeSubscriptionId!))
+    );
+    if (activeSubs.length > 0) {
+      await db.subscription.updateMany({
+        where: { userId: user.id, status: "ACTIVE" },
+        data: { status: "CANCELLED", autoRenew: false },
+      });
+    }
   }
 
   // Send confirmation email BEFORE anonymizing (we need the real email)

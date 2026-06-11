@@ -160,14 +160,16 @@ export async function grantPlanPurchase(args: {
 
   await db.$transaction(async (tx) => {
     if (args.stripeRef) {
-      // Update the PENDING transaction in place
-      await tx.transaction.update({
-        where: { stripeRef: args.stripeRef },
+      // Atomic claim: only one concurrent webhook delivery can flip PENDING → PAID.
+      // Without this, two simultaneous deliveries both pass the pre-check and double-credit.
+      const claim = await tx.transaction.updateMany({
+        where: { stripeRef: args.stripeRef, paymentStatus: { not: "PAID" } },
         data: {
           paymentStatus: "PAID",
           creditsDelta,
         },
       });
+      if (claim.count === 0) return; // already processed by a concurrent delivery
     } else {
       await tx.transaction.create({
         data: {

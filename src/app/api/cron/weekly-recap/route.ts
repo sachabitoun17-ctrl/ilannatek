@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
   if (authError) return authError;
 
   const now = new Date();
+  if (now.getDay() !== 0) {
+    return NextResponse.json({ ok: true, sent: 0, skipped: "not Sunday" });
+  }
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const sevenDaysAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 

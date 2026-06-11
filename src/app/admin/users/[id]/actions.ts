@@ -150,18 +150,25 @@ export async function adminRefundBookingAction(formData: FormData) {
   if (!booking || booking.creditsUsed === 0) return;
   if (booking.status === "CANCELLED") return;
 
-  await db.$transaction([
-    db.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED", cancelledAt: new Date() } }),
-    db.user.update({ where: { id: booking.userId }, data: { creditsBalance: { increment: booking.creditsUsed } } }),
-    db.transaction.create({
+  await db.$transaction(async (tx) => {
+    // Atomic claim: two concurrent refund clicks both pass the pre-check above —
+    // only the one that actually flips the status applies the refund.
+    const claim = await tx.booking.updateMany({
+      where: { id: bookingId, status: { not: "CANCELLED" } },
+      data: { status: "CANCELLED", cancelledAt: new Date() },
+    });
+    if (claim.count === 0) return;
+
+    await tx.user.update({ where: { id: booking.userId }, data: { creditsBalance: { increment: booking.creditsUsed } } });
+    await tx.transaction.create({
       data: {
         userId: booking.userId,
         type: "ADMIN_ADJUST",
         creditsDelta: booking.creditsUsed,
         description: `Remboursement admin — ${booking.session.classType.name}`,
       },
-    }),
-  ]);
+    });
+  });
 
   void audit({
     actorId: admin.id,

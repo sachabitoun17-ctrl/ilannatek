@@ -100,6 +100,18 @@ export async function createCheckoutSession(args: {
   return { id: json.id, url: json.url };
 }
 
+export async function cancelSubscription(stripeSubscriptionId: string): Promise<void> {
+  const res = await fetch(`${STRIPE_API}/subscriptions/${stripeSubscriptionId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    // 404 means already cancelled/deleted — treat as success
+    if (res.status !== 404) throw new Error(`Stripe subscription cancel failed: ${body}`);
+  }
+}
+
 /**
  * Stripe webhook signature verification.
  * Mirrors stripe.webhooks.constructEvent.

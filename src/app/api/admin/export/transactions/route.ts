@@ -6,10 +6,11 @@ export const dynamic = "force-dynamic";
 
 function csvCell(v: unknown): string {
   const s = String(v ?? "");
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-    return `"${s.replace(/"/g, '""')}"`;
+  const safe = /^[=+\-@|]/.test(s) ? `'${s}` : s;
+  if (safe.includes(",") || safe.includes('"') || safe.includes("\n")) {
+    return `"${safe.replace(/"/g, '""')}"`;
   }
-  return s;
+  return safe;
 }
 
 function today() {

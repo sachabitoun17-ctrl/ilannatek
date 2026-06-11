@@ -62,13 +62,17 @@ export async function recordPromoRedemption(
   transactionId: string,
   appliedAmount: number
 ) {
-  await db.$transaction([
-    db.promoRedemption.create({
+  await db.$transaction(async (tx) => {
+    // Atomic conditional increment: refuses to exceed maxUses even under
+    // concurrent checkouts (the pre-check in evaluatePromoCode can race).
+    const claimed = await tx.$executeRaw`
+      UPDATE "PromoCode" SET uses = uses + 1
+      WHERE id = ${codeId} AND ("maxUses" IS NULL OR uses < "maxUses")
+    `;
+    if (claimed === 0) throw new Error("Code promo épuisé");
+
+    await tx.promoRedemption.create({
       data: { codeId, userId, transactionId, appliedAmount },
-    }),
-    db.promoCode.update({
-      where: { id: codeId },
-      data: { uses: { increment: 1 } },
-    }),
-  ]);
+    });
+  });
 }
