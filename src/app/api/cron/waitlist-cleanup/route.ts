@@ -75,9 +75,10 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    // Next eligible waitlisted member: never offered before (no token rows),
-    // enough credits, credits not frozen
-    const nextCandidate = await db.booking.findFirst({
+    // Walk the waitlist in order, skipping ineligible members, until we find
+    // someone who can accept.  "Never offered before" = no token rows ever
+    // (one offer per member per session; exhausted offers are cascadedAt-stamped).
+    const allCandidates = await db.booking.findMany({
       where: {
         sessionId,
         status: "WAITLIST",
@@ -90,20 +91,13 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const nextCandidate = allCandidates.find(
+      (c) =>
+        c.user.creditsBalance >= cost &&
+        !(c.user.creditsFrozenUntil && c.user.creditsFrozenUntil > now)
+    );
+
     if (!nextCandidate) {
-      skipped++;
-      continue;
-    }
-
-    if (nextCandidate.user.creditsBalance < cost) {
-      skipped++;
-      continue;
-    }
-
-    if (
-      nextCandidate.user.creditsFrozenUntil &&
-      nextCandidate.user.creditsFrozenUntil > now
-    ) {
       skipped++;
       continue;
     }

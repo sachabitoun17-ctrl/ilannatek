@@ -2,7 +2,6 @@
 
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { sendEmail } from "@/lib/email";
 import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
 
@@ -74,26 +73,26 @@ export async function broadcastEmailAction(formData: FormData) {
 
   const html = buildBroadcastHtml(subject, body, settings.emailFrom, siteUrl);
 
-  let sent = 0;
-  let failed = 0;
-  for (const member of members) {
-    try {
-      await sendEmail({ to: member.email, subject, html });
-      sent++;
-    } catch {
-      failed++;
-    }
-  }
+  // Insert into EmailOutbox — the retry cron drains them in the background.
+  // This avoids the Vercel function timeout on large lists and ensures no
+  // partial sends (the action returns instantly; delivery is async).
+  await db.emailOutbox.createMany({
+    data: members.map((m) => ({
+      to: m.email,
+      subject,
+      html,
+    })),
+  });
 
   void audit({
     actorId: admin.id,
     action: "ADMIN_BROADCAST_EMAIL",
     entity: "Email",
-    metadata: { subject, audience, sent, failed, total: members.length },
+    metadata: { subject, audience, queued: members.length },
   });
 
   return {
     ok: true as const,
-    message: `Email envoyé à ${sent} membre${sent > 1 ? "s" : ""}${failed > 0 ? ` (${failed} échec${failed > 1 ? "s" : ""})` : ""}`,
+    message: `${members.length} email${members.length > 1 ? "s" : ""} mis en file d'envoi`,
   };
 }

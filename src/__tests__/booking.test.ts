@@ -106,7 +106,7 @@ describe("bookSession — confirmed booking", () => {
       .mockResolvedValueOnce(0); // waitlistCount
     mockDb.user.findUnique.mockResolvedValue(user);
     mockDb.booking.create.mockResolvedValue({ id: "bk-1", status: "CONFIRMED" });
-    mockDb.user.update.mockResolvedValue({ ...user, creditsBalance: 2 });
+    mockDb.user.updateMany.mockResolvedValue({ count: 1 }); // atomic credit claim succeeds
     mockDb.transaction.create.mockResolvedValue({ id: "tx-1" });
 
     const result = await bookSession(user.id, session.id);
@@ -116,9 +116,10 @@ describe("bookSession — confirmed booking", () => {
       expect(result.status).toBe("CONFIRMED");
     }
 
-    // Credit decrement
-    const userUpdate = mockDb.user.update.mock.calls[0][0];
-    expect(userUpdate.data.creditsBalance).toEqual({ decrement: CLASS_TYPE.creditCost });
+    // Atomic credit claim via updateMany
+    const updateManyCall = mockDb.user.updateMany.mock.calls[0][0];
+    expect(updateManyCall.where.creditsBalance).toEqual({ gte: CLASS_TYPE.creditCost });
+    expect(updateManyCall.data.creditsBalance).toEqual({ decrement: CLASS_TYPE.creditCost });
 
     // CREDIT_USE transaction created
     const txCreate = mockDb.transaction.create.mock.calls[0][0];

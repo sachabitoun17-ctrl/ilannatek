@@ -26,10 +26,10 @@ export async function markAttendanceAction(
   let feeCharged = 0;
 
   await db.$transaction(async (tx) => {
-    // Atomic: only act if WE transition the status (concurrent double-click
-    // on "Absent" would otherwise process twice).
+    // Only valid from attendance-eligible statuses — WAITLIST/CANCELLED must
+    // not be transitioned here (prevents free comp and re-marking refunded bookings).
     const claim = await tx.booking.updateMany({
-      where: { id: bookingId, status: { not: status } },
+      where: { id: bookingId, status: { in: ["CONFIRMED", "ATTENDED", "NO_SHOW"], not: status } },
       data: { status },
     });
     if (claim.count === 0) return;

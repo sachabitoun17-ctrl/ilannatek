@@ -115,6 +115,22 @@ export async function deleteAccountAction(formData: FormData) {
     }
   }
 
+  // Cancel all future CONFIRMED bookings (free up capacity for other members)
+  const now = new Date();
+  await db.booking.updateMany({
+    where: {
+      userId: user.id,
+      status: "CONFIRMED",
+      session: { startTime: { gt: now } },
+    },
+    data: { status: "CANCELLED", cancelledAt: now },
+  });
+  // Also cancel any WAITLIST positions
+  await db.booking.updateMany({
+    where: { userId: user.id, status: "WAITLIST" },
+    data: { status: "CANCELLED", cancelledAt: now },
+  });
+
   // Send confirmation email BEFORE anonymizing (we need the real email)
   await sendEmail({
     to: user.email,

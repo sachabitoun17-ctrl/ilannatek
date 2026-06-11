@@ -247,14 +247,14 @@ describe("broadcastEmailAction — audience filtering", () => {
   });
 });
 
-describe("broadcastEmailAction — send counting", () => {
-  it("reports correct sent count on success", async () => {
+describe("broadcastEmailAction — queuing via EmailOutbox", () => {
+  it("reports correct queued count and inserts into emailOutbox", async () => {
     const members = [
       { id: "u1", email: "user1@example.com", firstName: "User1" },
       { id: "u2", email: "user2@example.com", firstName: "User2" },
     ];
     mockDb.user.findMany.mockResolvedValue(members);
-    mockSendEmail.mockResolvedValue(undefined); // all succeed
+    mockDb.emailOutbox.createMany = vi.fn().mockResolvedValue({ count: 2 });
 
     const fd = makeFormData({
       subject: "Test",
@@ -266,36 +266,19 @@ describe("broadcastEmailAction — send counting", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.message).toMatch(/2 membre/);
+      expect(result.message).toMatch(/2 email/);
+      expect(result.message).toMatch(/file/i);
     }
-    // sendEmail called for each member
-    expect(mockSendEmail).toHaveBeenCalledTimes(2);
-  });
-
-  it("reports failed count when some emails throw", async () => {
-    const members = [
-      { id: "u1", email: "user1@example.com", firstName: "User1" },
-      { id: "u2", email: "user2@example.com", firstName: "User2" },
-      { id: "u3", email: "user3@example.com", firstName: "User3" },
-    ];
-    mockDb.user.findMany.mockResolvedValue(members);
-    mockSendEmail
-      .mockResolvedValueOnce(undefined) // first succeeds
-      .mockRejectedValueOnce(new Error("SMTP error")) // second fails
-      .mockResolvedValueOnce(undefined); // third succeeds
-
-    const fd = makeFormData({
-      subject: "Test",
-      body: "Hello",
-      audience: "all",
-    });
-
-    const result = await broadcastEmailAction(fd);
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.message).toMatch(/2 membre/);
-      expect(result.message).toMatch(/1 échec/);
-    }
+    // Outbox createMany called with all recipients
+    expect(mockDb.emailOutbox.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ to: "user1@example.com", subject: "Test" }),
+          expect.objectContaining({ to: "user2@example.com", subject: "Test" }),
+        ]),
+      })
+    );
+    // sendEmail must NOT be called directly (it's now async via outbox)
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 });

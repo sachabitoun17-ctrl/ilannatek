@@ -106,10 +106,15 @@ export async function bookSession(
     }
 
     if (!isWaitlist) {
-      await tx.user.update({
-        where: { id: userId },
+      // Atomic claim: if another concurrent booking on a different session
+      // already consumed this credit, the updateMany returns count=0 and we abort.
+      const creditClaim = await tx.user.updateMany({
+        where: { id: userId, creditsBalance: { gte: cost } },
         data: { creditsBalance: { decrement: cost } },
       });
+      if (creditClaim.count === 0) {
+        return { ok: false as const, error: "Solde insuffisant (crédit consommé par une autre réservation simultanée)" };
+      }
       await tx.transaction.create({
         data: {
           userId,

@@ -7,6 +7,25 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { sendEmail, emailTemplates } from "@/lib/email";
 
+// Parse a "YYYY-MM-DDTHH:MM" datetime-local string as Europe/Paris wall time.
+// Without this, new Date("2025-06-10T09:00") is parsed as UTC on Vercel, storing
+// 09:00 UTC = 11:00 Paris in summer. We shift the offset to get the correct UTC instant.
+function parseParisDatetime(s: string): Date {
+  // "2025-06-10T09:00" → Date in Europe/Paris timezone
+  const [datePart, timePart] = s.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  // Create a UTC date that represents the Paris wall clock time
+  // by using Intl to find the UTC offset for that specific local time.
+  const candidate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const parisStr = candidate.toLocaleString("en-CA", { timeZone: "Europe/Paris", hour12: false });
+  // parisStr: "2025-06-10, 11:00:00" — compute the diff
+  const [, pTimePart] = parisStr.split(", ");
+  const [pH, pM] = pTimePart.split(":").map(Number);
+  const offsetMin = (pH * 60 + pM) - (hour * 60 + minute);
+  return new Date(candidate.getTime() - offsetMin * 60000);
+}
+
 const sessionSchema = z.object({
   classTypeId: z.string().min(1),
   instructorId: z.string().min(1),
@@ -32,7 +51,7 @@ export async function createSessionAction(formData: FormData) {
   });
   if (!classType) throw new Error("Type de cours invalide");
 
-  const start = new Date(data.startTime);
+  const start = parseParisDatetime(data.startTime);
   const end = new Date(start.getTime() + classType.durationMin * 60000);
 
   await db.session.create({
@@ -69,7 +88,7 @@ export async function updateSessionAction(id: string, formData: FormData) {
   });
   if (!classType) throw new Error("Type de cours invalide");
 
-  const start = new Date(data.startTime);
+  const start = parseParisDatetime(data.startTime);
   const end = new Date(start.getTime() + classType.durationMin * 60000);
 
   const existing = await db.session.findUnique({

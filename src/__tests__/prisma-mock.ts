@@ -83,8 +83,10 @@ export function createPrismaMock() {
     },
     emailOutbox: {
       create: vi.fn(),
+      createMany: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     $transaction: makeTransactionFn(),
     $queryRaw: vi.fn(),

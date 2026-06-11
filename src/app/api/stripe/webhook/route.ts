@@ -31,13 +31,20 @@ export async function POST(req: NextRequest) {
   }
 
   switch (event.type) {
-    case "checkout.session.completed": {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded": {
       const session = event.data.object as {
         id: string;
+        payment_status?: string;
         metadata?: Record<string, string>;
         amount_total?: number;
         subscription?: string;
       };
+      // For async payment methods (SEPA, etc.) completed fires with payment_status="unpaid";
+      // only grant once the actual payment confirmed (async_payment_succeeded or paid).
+      if (session.payment_status && session.payment_status !== "paid") {
+        break;
+      }
       const userId = session.metadata?.userId;
       const planId = session.metadata?.planId;
       const promoCodeId = session.metadata?.promoCodeId || null;
@@ -58,6 +65,10 @@ export async function POST(req: NextRequest) {
         console.error("Webhook grant failed:", result.error);
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
+      break;
+    }
+    case "checkout.session.async_payment_failed": {
+      // Async payment failed (SEPA bounce, etc.) — nothing to do since we never granted
       break;
     }
     case "invoice.payment_succeeded": {
@@ -127,14 +138,16 @@ export async function POST(req: NextRequest) {
       break;
     }
     case "invoice.payment_failed": {
-      const inv = event.data.object as { customer?: string; subscription?: string };
+      // Mark as PAST_DUE (not EXPIRED) — Stripe retries dunning; only expire on
+      // customer.subscription.deleted which fires after all retries are exhausted.
+      const inv = event.data.object as { subscription?: string };
       if (inv.subscription) {
         const sub = await db.subscription.findFirst({
           where: { stripeSubscriptionId: inv.subscription },
           include: { user: true, plan: true },
         });
-        if (sub) {
-          await db.subscription.update({ where: { id: sub.id }, data: { status: "EXPIRED" } });
+        if (sub && sub.status === "ACTIVE") {
+          await db.subscription.update({ where: { id: sub.id }, data: { status: "PAST_DUE" } });
           void sendEmail({
             to: sub.user.email,
             ...emailTemplates.paymentFailed({ firstName: sub.user.firstName, planName: sub.plan.name }),

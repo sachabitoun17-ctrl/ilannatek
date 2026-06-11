@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { stripeEnabled, cancelSubscription } from "@/lib/stripe";
 
 export async function adminAdjustCreditsAction(formData: FormData) {
   const admin = await requireAdmin();
@@ -95,6 +96,11 @@ export async function adminCancelSubscriptionAction(formData: FormData) {
     include: { user: true, plan: true },
   });
   if (!sub) return;
+
+  // Cancel in Stripe first so their webhook doesn't flip the row back to ACTIVE
+  if (stripeEnabled() && sub.stripeSubscriptionId) {
+    await cancelSubscription(sub.stripeSubscriptionId);
+  }
 
   await db.subscription.update({
     where: { id: subscriptionId },

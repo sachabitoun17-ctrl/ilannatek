@@ -224,7 +224,7 @@ describe("GET /api/cron/waitlist-cleanup — skip conditions", () => {
     mockDb.waitlistToken.findMany.mockResolvedValue([expiredToken]);
     mockDb.waitlistToken.update.mockResolvedValue({});
     mockDb.booking.count.mockResolvedValue(3); // not full
-    mockDb.booking.findFirst.mockResolvedValue(null); // no candidate
+    mockDb.booking.findMany.mockResolvedValueOnce([]) // no candidates; // no candidate
 
     const res = await GET(makeRequest());
     const body = await res.json();
@@ -238,9 +238,7 @@ describe("GET /api/cron/waitlist-cleanup — skip conditions", () => {
     mockDb.waitlistToken.findMany.mockResolvedValue([expiredToken]);
     mockDb.waitlistToken.update.mockResolvedValue({});
     mockDb.booking.count.mockResolvedValue(3);
-    mockDb.booking.findFirst.mockResolvedValue(
-      makeCandidate({ creditsBalance: 0 }) // no credits
-    );
+    mockDb.booking.findMany.mockResolvedValueOnce([makeCandidate({ creditsBalance: 0 })]); // ineligible, no credits
 
     const res = await GET(makeRequest());
     const body = await res.json();
@@ -255,9 +253,7 @@ describe("GET /api/cron/waitlist-cleanup — skip conditions", () => {
     mockDb.waitlistToken.findMany.mockResolvedValue([expiredToken]);
     mockDb.waitlistToken.update.mockResolvedValue({});
     mockDb.booking.count.mockResolvedValue(3);
-    mockDb.booking.findFirst.mockResolvedValue(
-      makeCandidate({ creditsFrozenUntil: frozenUntil })
-    );
+    mockDb.booking.findMany.mockResolvedValueOnce([makeCandidate({ creditsFrozenUntil: frozenUntil })]); // frozen
 
     const res = await GET(makeRequest());
     const body = await res.json();
@@ -273,7 +269,7 @@ describe("GET /api/cron/waitlist-cleanup — successful promotion", () => {
     mockDb.waitlistToken.findMany.mockResolvedValue([expiredToken]);
     mockDb.waitlistToken.update.mockResolvedValue({});
     mockDb.booking.count.mockResolvedValue(3); // not full
-    mockDb.booking.findFirst.mockResolvedValue(makeCandidate());
+    mockDb.booking.findMany.mockResolvedValueOnce([makeCandidate()]);
     mockDb.waitlistToken.create.mockResolvedValue({ id: "new-token", token: "new-uuid" });
 
     const res = await GET(makeRequest());
@@ -302,7 +298,7 @@ describe("GET /api/cron/waitlist-cleanup — successful promotion", () => {
     mockDb.waitlistToken.findMany.mockResolvedValue([expiredToken]);
     mockDb.waitlistToken.update.mockResolvedValue({});
     mockDb.booking.count.mockResolvedValue(3);
-    mockDb.booking.findFirst.mockResolvedValue(makeCandidate());
+    mockDb.booking.findMany.mockResolvedValueOnce([makeCandidate()]);
     mockDb.waitlistToken.create.mockResolvedValue({ id: "new-token" });
 
     const beforeTime = Date.now();
@@ -328,7 +324,7 @@ describe("GET /api/cron/waitlist-cleanup — successful promotion", () => {
     mockDb.waitlistToken.update.mockResolvedValue({});
     // First token: session ok, has capacity, has eligible candidate
     mockDb.booking.count.mockResolvedValue(3);
-    mockDb.booking.findFirst.mockResolvedValue(makeCandidate());
+    mockDb.booking.findMany.mockResolvedValueOnce([makeCandidate()]);
     mockDb.waitlistToken.create.mockResolvedValue({ id: "new-token" });
 
     const res = await GET(makeRequest());

@@ -1,6 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+// Never run automatically in production — require an explicit opt-in.
+if (process.env.NODE_ENV === "production" && !process.env.SEED_ALLOW) {
+  console.error("seed.ts: refused to run in production without SEED_ALLOW=1");
+  process.exit(1);
+}
+
 const db = new PrismaClient();
 
 function addDays(d: Date, n: number) {
