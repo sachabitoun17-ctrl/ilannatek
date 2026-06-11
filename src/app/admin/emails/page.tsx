@@ -165,6 +165,21 @@ const TEMPLATE_META: Record<
     description: "Confirmation RGPD d'anonymisation du compte.",
     trigger: "Action de suppression depuis /account/profile",
   },
+  subRequestedToAdmin: {
+    label: "Remplacement demandé (admin)",
+    description: "Envoyé aux admins quand un instructeur signale une indisponibilité.",
+    trigger: "Demande de remplacement depuis /instructor/sub-requests",
+  },
+  subAssigned: {
+    label: "Remplacement assigné (instructeur)",
+    description: "Briefing envoyé au remplaçant avec les détails de la séance.",
+    trigger: "Assignation d'un remplaçant par l'admin",
+  },
+  instructorChanged: {
+    label: "Changement d'instructeur (membre)",
+    description: "Notifie les inscrits que l'instructeur a changé — réservation maintenue.",
+    trigger: "Assignation d'un remplaçant par l'admin",
+  },
 };
 
 function previewFor(key: TemplateKey, firstName: string) {
@@ -338,6 +353,33 @@ function previewFor(key: TemplateKey, firstName: string) {
       });
     case "accountDeleted":
       return emailTemplates.accountDeleted({ firstName });
+    case "subRequestedToAdmin":
+      return emailTemplates.subRequestedToAdmin({
+        requesterName: `${firstName} Martin`,
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 86400000),
+        location: "Studio Paris 11ème",
+        reason: "Congé maladie",
+        confirmedCount: 9,
+      });
+    case "subAssigned":
+      return emailTemplates.subAssigned({
+        subFirstName: firstName,
+        requesterName: "Camille Martin",
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 86400000),
+        location: "Studio Paris 11ème",
+        locationAddress: "12 rue de la Roquette",
+        confirmedCount: 9,
+        capacity: 12,
+      });
+    case "instructorChanged":
+      return emailTemplates.instructorChanged({
+        firstName,
+        className: "Yoga Flow",
+        startTime: new Date(Date.now() + 86400000),
+        newInstructorName: "Sophie Dubois",
+      });
   }
 }
 

@@ -28,6 +28,9 @@ export default async function InstructorLayout({
           <Link href="/instructor/check-in" className="text-stone2-600 hover:text-brand-600 transition-colors">
             Check-in
           </Link>
+          <Link href="/instructor/sub-requests" className="text-stone2-600 hover:text-brand-600 transition-colors">
+            Remplacements
+          </Link>
         </nav>
       </header>
       <div>{children}</div>

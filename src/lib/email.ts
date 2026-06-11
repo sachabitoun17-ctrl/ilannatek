@@ -666,6 +666,80 @@ export const emailTemplates = {
     text: `Bonjour ${args.firstName}, votre abonnement ${args.planName} a été renouvelé. +${args.creditsAdded} crédit(s). Solde : ${args.newBalance}. Prochaine échéance : ${args.newEndDate.toLocaleDateString("fr-FR")}.`,
   }),
 
+  // ─── REMPLACEMENTS ────────────────────────────────────────────────────────────────────
+
+  subRequestedToAdmin: (args: {
+    requesterName: string;
+    className: string;
+    startTime: Date;
+    location: string;
+    reason?: string | null;
+    confirmedCount: number;
+  }) => ({
+    subject: `Remplacement demandé — ${args.className} le ${args.startTime.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`,
+    html: wrap(
+      `Demande de remplacement`,
+      `<p><strong>${esc(args.requesterName)}</strong> ne peut pas assurer la séance suivante et a besoin d'un remplaçant.</p>
+       <div style="margin:20px 0">
+         <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
+         <div class="detail-row"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong></div>
+         <div class="detail-row"><span class="detail-label">Heure</span><strong>${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
+         <div class="detail-row"><span class="detail-label">Studio</span><strong>${args.location}</strong></div>
+         <div class="detail-row" style="border:none"><span class="detail-label">Inscrits</span><strong>${args.confirmedCount} membre${args.confirmedCount !== 1 ? "s" : ""}</strong></div>
+       </div>
+       ${args.reason ? `<div class="highlight"><strong>Motif :</strong> ${esc(args.reason)}</div>` : ""}
+       <p style="margin-top:24px"><a class="btn btn-accent" href="${siteUrl()}/admin/sub-requests">Assigner un remplaçant →</a></p>`
+    ),
+  }),
+
+  subAssigned: (args: {
+    subFirstName: string;
+    requesterName: string;
+    className: string;
+    startTime: Date;
+    location: string;
+    locationAddress?: string | null;
+    confirmedCount: number;
+    capacity: number;
+  }) => ({
+    subject: `Vous remplacez ${args.requesterName} — ${args.className}`,
+    html: wrap(
+      `Vous êtes remplaçant·e`,
+      `<p>Bonjour ${esc(args.subFirstName)},</p>
+       <p>Vous avez été désigné·e pour remplacer <strong>${esc(args.requesterName)}</strong> sur la séance suivante.</p>
+       <div style="margin:20px 0">
+         <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
+         <div class="detail-row"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong></div>
+         <div class="detail-row"><span class="detail-label">Heure</span><strong>${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
+         <div class="detail-row"><span class="detail-label">Studio</span><strong>${args.location}</strong>${args.locationAddress ? `<span class="muted" style="margin-left:8px">${esc(args.locationAddress)}</span>` : ""}</div>
+         <div class="detail-row" style="border:none"><span class="detail-label">Inscrits</span><strong>${args.confirmedCount} / ${args.capacity}</strong></div>
+       </div>
+       <div class="highlight">Les membres inscrits ont été informés du changement d'instructeur. Votre espace instructeur a été mis à jour.</div>
+       <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/instructor">Voir mes cours →</a></p>`
+    ),
+  }),
+
+  instructorChanged: (args: {
+    firstName: string;
+    className: string;
+    startTime: Date;
+    newInstructorName: string;
+  }) => ({
+    subject: `Changement d'instructeur — ${args.className}`,
+    html: wrap(
+      `Changement d'instructeur`,
+      `<p>Bonjour ${esc(args.firstName)},</p>
+       <p>L'instructeur de votre prochain cours a changé.</p>
+       <div style="margin:20px 0">
+         <div class="detail-row"><span class="detail-label">Cours</span><strong>${args.className}</strong></div>
+         <div class="detail-row"><span class="detail-label">Date</span><strong>${args.startTime.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${args.startTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</strong></div>
+         <div class="detail-row" style="border:none"><span class="detail-label">Instructeur</span><strong>${esc(args.newInstructorName)}</strong></div>
+       </div>
+       <div class="highlight">Votre réservation est maintenue. Aucune action de votre part n'est nécessaire.</div>
+       <p style="margin-top:24px"><a class="btn" href="${siteUrl()}/account">Voir mes réservations →</a></p>`
+    ),
+  }),
+
   // ─── COMPTE ──────────────────────────────────────────────────────────────────────────
 
   accountDeleted: (args: { firstName: string }) => ({

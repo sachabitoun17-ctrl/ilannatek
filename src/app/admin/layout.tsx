@@ -25,6 +25,7 @@ export default async function AdminLayout({
       items: [
         { href: "/admin/sessions", label: "Cours" },
         { href: "/admin/recurring", label: "Cours récurrents" },
+        { href: "/admin/sub-requests", label: "Remplacements" },
         { href: "/admin/class-types", label: "Types de cours" },
         { href: "/admin/instructors", label: "Instructeurs" },
         { href: "/admin/locations", label: "Studios" },
