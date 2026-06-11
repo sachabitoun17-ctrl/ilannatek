@@ -62,6 +62,8 @@ export async function createCheckoutSession(args: {
   productName: string;
   amountCents: number;
   mode: "payment" | "subscription";
+  // billing period for ad-hoc subscription prices (ignored when priceId is set)
+  intervalDays?: number;
   successUrl: string;
   cancelUrl: string;
   metadata: Record<string, string>;
@@ -84,7 +86,18 @@ export async function createCheckoutSession(args: {
     params["line_items[0][price_data][product_data][name]"] = args.productName;
     params["line_items[0][price_data][unit_amount]"] = args.amountCents;
     if (args.mode === "subscription") {
-      params["line_items[0][price_data][recurring][interval]"] = "month";
+      // Map plan.intervalDays to the closest Stripe interval — a 365-day plan
+      // billed "month" would charge the full annual price every month.
+      const days = args.intervalDays ?? 30;
+      if (days >= 360) {
+        params["line_items[0][price_data][recurring][interval]"] = "year";
+      } else if (days >= 7 && days < 28) {
+        params["line_items[0][price_data][recurring][interval]"] = "week";
+        params["line_items[0][price_data][recurring][interval_count]"] = Math.round(days / 7);
+      } else {
+        params["line_items[0][price_data][recurring][interval]"] = "month";
+        params["line_items[0][price_data][recurring][interval_count]"] = Math.max(1, Math.round(days / 30));
+      }
     }
     params["line_items[0][quantity]"] = 1;
   }

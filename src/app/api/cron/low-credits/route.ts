@@ -25,7 +25,13 @@ export async function GET(req: NextRequest) {
     where: {
       active: true,
       banned: false,
+      emailOptIn: true,
       creditsBalance: 1,
+      // Dedupe: never notified, or last nudge was > 7 days ago
+      OR: [
+        { lowCreditsNotifiedAt: null },
+        { lowCreditsNotifiedAt: { lt: sevenDaysAgo } },
+      ],
       // Active in the last 30 days
       bookings: {
         some: {
@@ -50,6 +56,13 @@ export async function GET(req: NextRequest) {
         firstName: u.firstName,
         creditsRemaining: u.creditsBalance,
       }),
+    });
+  }
+
+  if (users.length > 0) {
+    await db.user.updateMany({
+      where: { id: { in: users.map((u) => u.id) } },
+      data: { lowCreditsNotifiedAt: now },
     });
   }
 

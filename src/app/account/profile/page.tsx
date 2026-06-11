@@ -77,6 +77,20 @@ export default async function ProfilePage({
             <span className="text-xs text-stone2-400">Les autres membres verront votre prénom sur les cours en commun.</span>
           </label>
         </div>
+        <div className="flex items-start gap-3 pt-1">
+          <input
+            type="checkbox"
+            name="emailOptIn"
+            id="emailOptIn"
+            value="1"
+            defaultChecked={(user as { emailOptIn?: boolean }).emailOptIn ?? true}
+            className="mt-0.5 h-4 w-4 rounded border-stone2-300 accent-brand-600"
+          />
+          <label htmlFor="emailOptIn" className="text-sm text-stone2-700 cursor-pointer">
+            Recevoir les emails du studio (newsletters, récaps, offres)<br />
+            <span className="text-xs text-stone2-400">Vous recevrez toujours les emails transactionnels (confirmations, annulations).</span>
+          </label>
+        </div>
         <SubmitButton label="Enregistrer" pendingLabel="Enregistrement..." />
       </form>
 

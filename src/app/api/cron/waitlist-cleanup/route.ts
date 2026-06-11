@@ -8,12 +8,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Waitlist cleanup cron — runs daily.
- * Finds expired WaitlistTokens (expiresAt < now, usedAt IS NULL).
- * For each expired token, promotes the next eligible waitlisted user
- * by creating a fresh 30-minute token and sending them the offer email.
+ * Waitlist cascade cron — runs every 30 min.
+ * Finds expired WaitlistTokens (expiresAt < now, usedAt IS NULL) not yet
+ * processed (cascadedAt IS NULL), and offers the freed spot to the next
+ * eligible waitlisted member with a fresh 30-minute token.
  *
- * Call daily: GET /api/cron/waitlist-cleanup?key=<CRON_SECRET>
+ * Loop safety:
+ *  - every expired token is stamped cascadedAt after processing, so it is
+ *    never re-scanned;
+ *  - a booking that already received an offer (any WaitlistToken row) is
+ *    never offered again — one offer per member per session, no ping-pong;
+ *  - offers only go out for future SCHEDULED sessions with free capacity.
+ *
+ * Call: GET /api/cron/waitlist-cleanup?key=<CRON_SECRET>
  */
 export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req);
@@ -21,11 +28,11 @@ export async function GET(req: NextRequest) {
 
   const now = new Date();
 
-  // Find expired, unused tokens
   const expiredTokens = await db.waitlistToken.findMany({
     where: {
       expiresAt: { lt: now },
       usedAt: null,
+      cascadedAt: null,
     },
     include: {
       booking: {
@@ -43,23 +50,38 @@ export async function GET(req: NextRequest) {
   let skipped = 0;
 
   for (const expiredToken of expiredTokens) {
-    const sessionId = expiredToken.booking.sessionId;
-    const cost = expiredToken.booking.session.classType.creditCost;
+    // Stamp first: whatever happens below, this token is processed exactly once
+    await db.waitlistToken.update({
+      where: { id: expiredToken.id },
+      data: { cascadedAt: now },
+    });
 
-    // Find the next eligible waitlisted user for this session
-    // (skip the booking that just timed out — it stays on WAITLIST)
+    const session = expiredToken.booking.session;
+    const sessionId = expiredToken.booking.sessionId;
+    const cost = session.classType.creditCost;
+
+    // No point offering a spot in a past or cancelled session
+    if (session.status !== "SCHEDULED" || session.startTime <= now) {
+      skipped++;
+      continue;
+    }
+
+    // The freed spot may have been taken by a direct booking meanwhile
+    const confirmedCount = await db.booking.count({
+      where: { sessionId, status: "CONFIRMED" },
+    });
+    if (confirmedCount >= session.capacity) {
+      skipped++;
+      continue;
+    }
+
+    // Next eligible waitlisted member: never offered before (no token rows),
+    // enough credits, credits not frozen
     const nextCandidate = await db.booking.findFirst({
       where: {
         sessionId,
         status: "WAITLIST",
-        id: { not: expiredToken.bookingId },
-        // Ensure this candidate doesn't already have an active (unused, unexpired) token
-        waitlistTokens: {
-          none: {
-            usedAt: null,
-            expiresAt: { gt: now },
-          },
-        },
+        waitlistTokens: { none: {} },
       },
       orderBy: { waitlistPos: "asc" },
       include: {
@@ -78,7 +100,6 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    // Skip users with frozen credits
     if (
       nextCandidate.user.creditsFrozenUntil &&
       nextCandidate.user.creditsFrozenUntil > now

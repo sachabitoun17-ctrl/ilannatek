@@ -23,37 +23,63 @@ export async function markAttendanceAction(
 
   const settings = await getSettings();
   let newBalance: number | null = null;
+  let feeCharged = 0;
 
-  let feeAlreadyApplied = false;
   await db.$transaction(async (tx) => {
-    // Atomic: only apply the fee if WE transition the status (concurrent double-click
-    // on "Absent" would otherwise charge the fee twice).
+    // Atomic: only act if WE transition the status (concurrent double-click
+    // on "Absent" would otherwise process twice).
     const claim = await tx.booking.updateMany({
       where: { id: bookingId, status: { not: status } },
       data: { status },
     });
-    if (claim.count === 0) {
-      feeAlreadyApplied = true;
-      return;
-    }
+    if (claim.count === 0) return;
 
-    if (status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0) {
-      // Re-read balance inside tx; cap fee so balance never goes negative
+    if (status === "NO_SHOW" && settings.noShowFee > 0) {
+      // feeApplied is the durable guard: NO_SHOW → CONFIRMED → NO_SHOW
+      // must not bill the member a second time.
       const freshUser = await tx.user.findUnique({ where: { id: booking.userId }, select: { creditsBalance: true } });
       const fee = Math.min(settings.noShowFee, freshUser?.creditsBalance ?? 0);
       if (fee > 0) {
-        const updated = await tx.user.update({
-          where: { id: booking.userId },
-          data: { creditsBalance: { decrement: fee } },
-          select: { creditsBalance: true },
+        const feeClaim = await tx.booking.updateMany({
+          where: { id: bookingId, feeApplied: 0 },
+          data: { feeApplied: fee },
         });
-        newBalance = updated.creditsBalance;
+        if (feeClaim.count === 1) {
+          const updated = await tx.user.update({
+            where: { id: booking.userId },
+            data: { creditsBalance: { decrement: fee } },
+            select: { creditsBalance: true },
+          });
+          newBalance = updated.creditsBalance;
+          feeCharged = fee;
+          await tx.transaction.create({
+            data: {
+              userId: booking.userId,
+              type: "NO_SHOW_FEE",
+              creditsDelta: -fee,
+              description: `Frais d'absence — ${booking.session.classType.name}`,
+              paymentStatus: "FREE",
+            },
+          });
+        }
+      }
+    } else if (status !== "NO_SHOW" && booking.status === "NO_SHOW" && booking.feeApplied > 0) {
+      // Reverting an erroneous no-show: give the fee back
+      const refundClaim = await tx.booking.updateMany({
+        where: { id: bookingId, feeApplied: booking.feeApplied },
+        data: { feeApplied: 0 },
+      });
+      if (refundClaim.count === 1) {
+        await tx.user.update({
+          where: { id: booking.userId },
+          data: { creditsBalance: { increment: booking.feeApplied } },
+        });
         await tx.transaction.create({
           data: {
             userId: booking.userId,
-            type: "NO_SHOW_FEE",
-            creditsDelta: -fee,
-            description: `Frais d'absence — ${booking.session.classType.name}`,
+            type: "CREDIT_REFUND",
+            creditsDelta: booking.feeApplied,
+            description: `Annulation frais d'absence — ${booking.session.classType.name}`,
             paymentStatus: "FREE",
           },
         });
@@ -62,13 +88,13 @@ export async function markAttendanceAction(
   });
 
   // Email notification for no-show fee
-  if (!feeAlreadyApplied && status === "NO_SHOW" && booking.status !== "NO_SHOW" && settings.noShowFee > 0 && newBalance !== null) {
+  if (feeCharged > 0 && newBalance !== null) {
     void sendEmail({
       to: booking.user.email,
       ...emailTemplates.noShowFee({
         firstName: booking.user.firstName,
         className: booking.session.classType.name,
-        fee: settings.noShowFee,
+        fee: feeCharged,
         newBalance,
       }),
     });

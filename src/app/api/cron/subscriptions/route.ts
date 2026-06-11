@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { verifyCronAuth } from "@/lib/cronAuth";
+import { stripeEnabled } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
   let expired = 0;
   for (const sub of due) {
     if (sub.stripeSubscriptionId) {
-      // Trust Stripe to renew this via its own webhook
+      // Trust Stripe to renew this via invoice.payment_succeeded webhook
       continue;
     }
     if (!sub.autoRenew) {
@@ -69,7 +70,19 @@ export async function GET(req: NextRequest) {
       expired++;
       continue;
     }
-    // Local renewal (no Stripe): grant another cycle's credits
+    // Local free renewal is a DEV-ONLY convenience (simulated checkout).
+    // In production with Stripe enabled, a sub without stripeSubscriptionId is
+    // an anomaly — renewing it locally would mint unpaid credits forever.
+    if (stripeEnabled()) {
+      console.error(`[cron/subscriptions] Sub ${sub.id} (user ${sub.userId}) is ACTIVE+autoRenew but has no stripeSubscriptionId — expiring instead of free-renewing. Investigate.`);
+      await db.subscription.update({
+        where: { id: sub.id },
+        data: { status: "EXPIRED" },
+      });
+      expired++;
+      continue;
+    }
+    // Local renewal (no Stripe configured): grant another cycle's credits
     const newEnd = new Date(sub.endDate);
     newEnd.setDate(newEnd.getDate() + (sub.plan.intervalDays ?? 30));
     const credits = sub.plan.creditsPerCycle ?? 0;

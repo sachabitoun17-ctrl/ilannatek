@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       where: {
         active: true,
         banned: false,
+        emailOptIn: true,
         bookings: {
           some: {
             status: { in: ["CONFIRMED", "ATTENDED"] },

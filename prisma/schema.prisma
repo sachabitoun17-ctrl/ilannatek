@@ -35,6 +35,8 @@ model User {
   attendeeVisible Boolean  @default(false)
   // RGPD: opt-out of marketing/lifecycle emails (transactional emails still sent)
   emailOptIn      Boolean  @default(true)
+  // dedupe marker for the low-credits nudge cron
+  lowCreditsNotifiedAt DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -147,6 +149,7 @@ model Booking {
   promotedFromWaitlistAt DateTime?
   reminder2hSentAt DateTime?
   reminderSentAt  DateTime?
+  postClassSentAt DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -300,10 +303,13 @@ model WaitlistToken {
   token     String   @unique
   expiresAt DateTime
   usedAt    DateTime?
+  // set once the cleanup cron has processed this expired token (offer passed on)
+  cascadedAt DateTime?
   createdAt DateTime @default(now())
 
   @@index([token])
   @@index([bookingId])
+  @@index([expiresAt, usedAt, cascadedAt])
 }
 
 // One-time login code (email 2FA) — required for ADMIN sign-in

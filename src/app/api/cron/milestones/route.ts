@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       db.booking.count({ where: { userId, status: "ATTENDED" } }),
     ]);
 
-    if (!user || !MILESTONES.includes(total)) continue;
+    if (!user || !user.emailOptIn || !MILESTONES.includes(total)) continue;
 
     void sendEmail({
       to: user.email,

@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       where: {
         active: true,
         banned: false,
+        emailOptIn: true,
         createdAt: { gte: d1Start, lte: d1End },
         bookings: { none: {} },
       },
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
       where: {
         active: true,
         banned: false,
+        emailOptIn: true,
         createdAt: { gte: d3Start, lte: d3End },
         bookings: { none: {} },
       },

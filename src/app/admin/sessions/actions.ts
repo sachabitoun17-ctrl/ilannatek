@@ -115,17 +115,38 @@ export async function deleteSessionAction(id: string) {
   revalidatePath("/schedule");
 }
 
-async function notifySessionCancelled(sessionId: string, className: string, startTime: Date, creditCost: number) {
+async function notifySessionCancelled(sessionId: string, className: string, startTime: Date, _creditCost: number) {
   const bookings = await db.booking.findMany({
     where: { sessionId, status: "CONFIRMED" },
     include: { user: { select: { id: true, email: true, firstName: true } } },
   });
 
   await db.$transaction([
-    db.booking.updateMany({ where: { sessionId, status: { in: ["CONFIRMED", "WAITLIST"] } }, data: { status: "CANCELLED" } }),
-    ...bookings.map((b) =>
-      db.user.update({ where: { id: b.user.id }, data: { creditsBalance: { increment: creditCost } } })
-    ),
+    db.booking.updateMany({ where: { sessionId, status: { in: ["CONFIRMED", "WAITLIST"] } }, data: { status: "CANCELLED", cancelledAt: new Date() } }),
+    // Kill outstanding waitlist offers — the session no longer exists for members
+    db.waitlistToken.updateMany({
+      where: { booking: { sessionId }, usedAt: null },
+      data: { expiresAt: new Date(0) },
+    }),
+    // Close any open substitution request for this session
+    db.subRequest.updateMany({
+      where: { sessionId, status: "OPEN" },
+      data: { status: "CANCELLED" },
+    }),
+    // Refund what each member actually paid (creditsUsed, not today's price)
+    // with a ledger row per refund — every balance change must be traceable
+    ...bookings.filter((b) => b.creditsUsed > 0).flatMap((b) => [
+      db.user.update({ where: { id: b.user.id }, data: { creditsBalance: { increment: b.creditsUsed } } }),
+      db.transaction.create({
+        data: {
+          userId: b.user.id,
+          type: "CREDIT_REFUND",
+          creditsDelta: b.creditsUsed,
+          description: `Cours annulé par le studio — ${className}`,
+          paymentStatus: "FREE",
+        },
+      }),
+    ]),
   ]);
 
   for (const b of bookings) {
@@ -135,7 +156,7 @@ async function notifySessionCancelled(sessionId: string, className: string, star
         firstName: b.user.firstName,
         className,
         startTime,
-        creditsRefunded: creditCost,
+        creditsRefunded: b.creditsUsed,
       }),
     });
   }

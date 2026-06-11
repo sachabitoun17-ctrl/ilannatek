@@ -18,6 +18,7 @@ export async function updateProfileAction(formData: FormData) {
   const email = formData.get("email")?.toString().toLowerCase().trim();
   const phone = formData.get("phone")?.toString().trim() || null;
   const attendeeVisible = formData.get("attendeeVisible") === "1";
+  const emailOptIn = formData.get("emailOptIn") === "1";
 
   if (!firstName || !lastName || !email) {
     redirect("/account/profile?error=Champs+obligatoires+manquants");
@@ -35,7 +36,7 @@ export async function updateProfileAction(formData: FormData) {
   await db.user.update({
     where: { id: user.id },
     data: {
-      firstName, lastName, email, phone, attendeeVisible,
+      firstName, lastName, email, phone, attendeeVisible, emailOptIn,
       // bump sessionVersion on email change to invalidate existing sessions
       ...(emailChanged ? { sessionVersion: { increment: 1 } } : {}),
     },

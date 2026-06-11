@@ -19,7 +19,11 @@ async function confirmWaitlistBooking(formData: FormData) {
       booking: {
         include: {
           session: {
-            include: { classType: true, location: true },
+            include: {
+              classType: true,
+              location: true,
+              instructor: { select: { firstName: true, lastName: true } },
+            },
           },
           user: true,
         },
@@ -38,10 +42,29 @@ async function confirmWaitlistBooking(formData: FormData) {
   const session = booking.session;
   const cost = session.classType.creditCost;
 
-  // All token validation + writes inside one transaction — prevents concurrent double-confirmation
+  // The token only proves a spot opened at issue time. Everything else —
+  // booking still on the waitlist, session still on, capacity still free —
+  // must be re-checked under lock at confirmation time.
+  if (booking.status !== "WAITLIST") redirect(`/account/waitlist/accept/${token}?error=invalid`);
+  if (session.status !== "SCHEDULED" || session.startTime <= new Date()) {
+    redirect(`/account/waitlist/accept/${token}?error=expired`);
+  }
+
   let insufficientCredits = false;
   let alreadyUsed = false;
+  let sessionFull = false;
   await db.$transaction(async (tx) => {
+    // Serialize against concurrent bookSession on the same session
+    await tx.$queryRaw`SELECT id FROM "Session" WHERE id = ${session.id} FOR UPDATE`;
+
+    const confirmedCount = await tx.booking.count({
+      where: { sessionId: session.id, status: "CONFIRMED" },
+    });
+    if (confirmedCount >= session.capacity) {
+      sessionFull = true;
+      return;
+    }
+
     const freshUser = await tx.user.findUnique({ where: { id: user.id }, select: { creditsBalance: true } });
     if (!freshUser || freshUser.creditsBalance < cost) {
       insufficientCredits = true;
@@ -59,9 +82,10 @@ async function confirmWaitlistBooking(formData: FormData) {
       return;
     }
 
-    // Promote booking to CONFIRMED
-    await tx.booking.update({
-      where: { id: booking.id },
+    // Promote booking to CONFIRMED — guarded on WAITLIST so a cancelled
+    // booking can never be resurrected through an old email link
+    const promoted = await tx.booking.updateMany({
+      where: { id: booking.id, status: "WAITLIST" },
       data: {
         status: "CONFIRMED",
         waitlistPos: null,
@@ -69,6 +93,10 @@ async function confirmWaitlistBooking(formData: FormData) {
         promotedFromWaitlistAt: new Date(),
       },
     });
+    if (promoted.count === 0) {
+      alreadyUsed = true;
+      return;
+    }
 
     // Deduct credits
     await tx.user.update({
@@ -103,6 +131,7 @@ async function confirmWaitlistBooking(formData: FormData) {
   });
   if (alreadyUsed) redirect(`/account/waitlist/accept/${token}?error=already_used`);
   if (insufficientCredits) redirect(`/account/waitlist/accept/${token}?error=insufficient_credits`);
+  if (sessionFull) redirect(`/account/waitlist/accept/${token}?error=expired`);
 
   // Audit
   void audit({
@@ -121,7 +150,7 @@ async function confirmWaitlistBooking(formData: FormData) {
       className: session.classType.name,
       startTime: session.startTime,
       location: session.location.name,
-      instructor: "",
+      instructor: `${session.instructor.firstName} ${session.instructor.lastName}`,
     }),
   });
 

@@ -64,7 +64,7 @@ export async function broadcastEmailAction(formData: FormData) {
   }
 
   const members = await db.user.findMany({
-    where: { ...whereClause, role: { in: ["MEMBER", "INSTRUCTOR"] } },
+    where: { ...whereClause, role: { in: ["USER", "INSTRUCTOR"] }, emailOptIn: true },
     select: { id: true, email: true, firstName: true },
   });
 

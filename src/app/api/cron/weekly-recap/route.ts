@@ -39,12 +39,13 @@ export async function GET(req: NextRequest) {
     where: {
       active: true,
       banned: false,
+      emailOptIn: true,
       bookings: {
         some: {
           OR: [
-            // had a confirmed booking in the last 7 days
+            // had a confirmed or attended booking in the last 7 days
             {
-              status: "CONFIRMED",
+              status: { in: ["CONFIRMED", "ATTENDED"] },
               session: { startTime: { gte: sevenDaysAgo, lte: now } },
             },
             // has an upcoming confirmed booking in the next 7 days
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
     include: {
       bookings: {
         where: {
-          status: { in: ["CONFIRMED", "NO_SHOW"] },
+          status: { in: ["CONFIRMED", "ATTENDED", "NO_SHOW"] },
         },
         include: {
           session: {
@@ -75,17 +76,17 @@ export async function GET(req: NextRequest) {
 
   for (const user of users) {
     try {
-      // Courses attended in the last 7 days (confirmed, session in past)
+      // Courses attended in the last 7 days
       const coursesThisWeek = user.bookings.filter(
         (b) =>
-          b.status === "CONFIRMED" &&
+          (b.status === "CONFIRMED" || b.status === "ATTENDED") &&
           b.session.startTime >= sevenDaysAgo &&
           b.session.startTime <= now
       ).length;
 
-      // All-time total: CONFIRMED + NO_SHOW
+      // All-time total: CONFIRMED + ATTENDED + NO_SHOW
       const totalCourses = user.bookings.filter(
-        (b) => b.status === "CONFIRMED" || b.status === "NO_SHOW"
+        (b) => b.status === "CONFIRMED" || b.status === "ATTENDED" || b.status === "NO_SHOW"
       ).length;
 
       // Next 3 upcoming confirmed bookings

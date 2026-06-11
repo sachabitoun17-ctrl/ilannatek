@@ -52,16 +52,77 @@ export async function POST(req: NextRequest) {
         bonusCredits,
         promoCodeId,
         stripeRef: session.id,
+        stripeSubscriptionId: session.subscription ?? null,
       });
       if (!result.ok) {
         console.error("Webhook grant failed:", result.error);
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
-      if (session.subscription) {
-        await db.transaction.update({
-          where: { stripeRef: session.id },
-          data: { description: { set: undefined } },
-        }).catch(() => {});
+      break;
+    }
+    case "invoice.payment_succeeded": {
+      // Stripe-billed subscription renewal: extend the local period and grant
+      // the cycle's credits. The FIRST invoice (billing_reason=subscription_create)
+      // is already handled by checkout.session.completed — skip it here.
+      const inv = event.data.object as {
+        id: string;
+        subscription?: string;
+        billing_reason?: string;
+        amount_paid?: number;
+      };
+      if (!inv.subscription || inv.billing_reason === "subscription_create") break;
+
+      const sub = await db.subscription.findFirst({
+        where: { stripeSubscriptionId: inv.subscription },
+        include: { user: true, plan: true },
+      });
+      if (!sub) {
+        console.error(`[webhook] invoice.payment_succeeded: no local subscription for ${inv.subscription}`);
+        break;
+      }
+
+      const credits = sub.plan.creditsPerCycle ?? 0;
+      const base = sub.endDate > new Date() ? sub.endDate : new Date();
+      const newEnd = new Date(base);
+      newEnd.setDate(newEnd.getDate() + (sub.plan.intervalDays ?? 30));
+
+      try {
+        // stripeRef unique on Transaction = idempotency: a redelivered invoice
+        // event throws P2002 on the create and grants nothing twice.
+        await db.$transaction([
+          db.transaction.create({
+            data: {
+              userId: sub.userId,
+              planId: sub.planId,
+              type: "PURCHASE_SUBSCRIPTION",
+              amountCents: inv.amount_paid ?? sub.plan.priceCents,
+              creditsDelta: credits,
+              description: `Renouvellement ${sub.plan.name}`,
+              paymentStatus: "PAID",
+              stripeRef: inv.id,
+            },
+          }),
+          db.subscription.update({
+            where: { id: sub.id },
+            data: { endDate: newEnd, status: "ACTIVE" },
+          }),
+          db.user.update({
+            where: { id: sub.userId },
+            data: { creditsBalance: { increment: credits } },
+          }),
+        ]);
+        void sendEmail({
+          to: sub.user.email,
+          ...emailTemplates.receipt({
+            firstName: sub.user.firstName,
+            planName: `${sub.plan.name} (renouvellement)`,
+            amountCents: inv.amount_paid ?? sub.plan.priceCents,
+            creditsAdded: credits,
+          }),
+        });
+      } catch (err: unknown) {
+        const code = (err as { code?: string })?.code;
+        if (code !== "P2002") throw err; // P2002 = duplicate delivery, already granted
       }
       break;
     }

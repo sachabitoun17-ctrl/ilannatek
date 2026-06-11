@@ -23,10 +23,12 @@ export async function GET(req: NextRequest) {
   const bookings = await db.booking.findMany({
     where: {
       status: "ATTENDED",
+      postClassSentAt: null,
       session: {
         endTime: { gte: windowStart, lte: windowEnd },
         status: "SCHEDULED",
       },
+      user: { emailOptIn: true },
     },
     include: {
       user: true,
@@ -56,6 +58,11 @@ export async function GET(req: NextRequest) {
           totalAttended,
           creditsRemaining: b.user.creditsBalance,
         }),
+      });
+
+      await db.booking.update({
+        where: { id: b.id },
+        data: { postClassSentAt: now },
       });
       sent++;
     } catch (err) {

@@ -117,7 +117,7 @@ export default async function AccountPage() {
       take: 25,
     }),
     db.booking.findMany({
-      where: { userId: user.id, status: "CONFIRMED" },
+      where: { userId: user.id, status: { in: ["CONFIRMED", "ATTENDED"] } },
       include: { session: { select: { startTime: true } } },
       orderBy: { session: { startTime: "desc" } },
     }),

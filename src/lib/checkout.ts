@@ -25,12 +25,13 @@ export async function startCheckout(args: {
   const plan = await db.plan.findUnique({ where: { id: args.planId } });
   if (!plan || !plan.active) return { ok: false, error: "Plan indisponible" };
 
+  // Count FREE too: a 100%-promo purchase still consumes intro/quota eligibility
   if (plan.introOnly) {
     const previousPurchases = await db.transaction.count({
       where: {
         userId: args.userId,
         type: { in: ["PURCHASE_PACK", "PURCHASE_SUBSCRIPTION"] },
-        paymentStatus: "PAID",
+        paymentStatus: { in: ["PAID", "FREE"] },
       },
     });
     if (previousPurchases > 0)
@@ -42,7 +43,7 @@ export async function startCheckout(args: {
       where: {
         userId: args.userId,
         planId: plan.id,
-        paymentStatus: "PAID",
+        paymentStatus: { in: ["PAID", "FREE"] },
       },
     });
     if (count >= plan.maxPerUser)
@@ -100,6 +101,7 @@ export async function startCheckout(args: {
     productName: plan.name,
     amountCents: priceCents,
     mode: plan.type === "SUBSCRIPTION" ? "subscription" : "payment",
+    intervalDays: plan.intervalDays ?? undefined,
     successUrl: args.successUrl,
     cancelUrl: args.cancelUrl,
     metadata: {
@@ -140,6 +142,10 @@ export async function grantPlanPurchase(args: {
   promoCodeId?: string | null;
   promoLabel?: string | null;
   stripeRef: string | null;
+  // Stripe subscription id (sub_...) — REQUIRED for Stripe-billed subscriptions,
+  // otherwise renewal webhooks (invoice.*, customer.subscription.deleted) can
+  // never find the local Subscription row.
+  stripeSubscriptionId?: string | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const plan = await db.plan.findUnique({ where: { id: args.planId } });
   if (!plan) return { ok: false, error: "Plan introuvable" };
@@ -202,6 +208,7 @@ export async function grantPlanPurchase(args: {
           planId: plan.id,
           startDate,
           endDate,
+          stripeSubscriptionId: args.stripeSubscriptionId ?? null,
         },
       });
     }
