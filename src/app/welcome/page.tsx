@@ -224,8 +224,8 @@ export default async function WelcomePage() {
               },
               {
                 icon: "◈",
-                title: "Créneaux récurrents",
-                desc: "Activez un créneau et soyez réservé automatiquement chaque semaine sans effort.",
+                title: "Check-in QR",
+                desc: "Présentez votre QR code à l'arrivée — enregistrement en une seconde, sans file d'attente.",
               },
               {
                 icon: "◇",

@@ -46,7 +46,7 @@ model User {
   auditLogs          AuditLog[]     @relation("AuditActor")
   loginAttempts      LoginAttempt[]
   passwordResetTokens PasswordResetToken[]
-  recurringSlots     RecurringSlot[]
+  loginOtps          LoginOtp[]
   sentInvites        FriendInvite[] @relation("SentInvites")
   subRequestsMade    SubRequest[]   @relation("SubRequests")
   subAssignments     SubRequest[]   @relation("SubAssigned")
@@ -72,8 +72,7 @@ model Location {
   timezone  String   @default("Europe/Paris")
   createdAt DateTime @default(now())
 
-  sessions       Session[]
-  recurringSlots RecurringSlot[]
+  sessions Session[]
 }
 
 model ClassType {
@@ -88,7 +87,6 @@ model ClassType {
 
   sessions       Session[]
   recurringRules RecurringRule[]
-  recurringSlots RecurringSlot[]
 }
 
 model RecurringRule {
@@ -308,22 +306,36 @@ model WaitlistToken {
   @@index([bookingId])
 }
 
-// Member subscribes to a recurring slot (e.g. every Monday 7h Yoga)
-model RecurringSlot {
-  id           String    @id @default(cuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  classTypeId  String
-  classType    ClassType @relation(fields: [classTypeId], references: [id])
-  locationId   String?
-  location     Location? @relation(fields: [locationId], references: [id])
-  dayOfWeek    Int       // 0=Sunday … 6=Saturday
-  startTimeMin Int       // minutes from midnight
-  active       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
+// One-time login code (email 2FA) — required for ADMIN sign-in
+model LoginOtp {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
 
-  @@unique([userId, classTypeId, dayOfWeek, startTimeMin])
-  @@index([classTypeId, dayOfWeek, startTimeMin])
+  @@index([userId, createdAt])
+}
+
+// Failed transactional emails persisted for retry by the email-retry cron
+model EmailOutbox {
+  id          String   @id @default(cuid())
+  to          String
+  subject     String
+  html        String
+  text        String?
+  // PENDING | SENT | FAILED
+  status      String   @default("PENDING")
+  attempts    Int      @default(0)
+  lastError   String?
+  nextRetryAt DateTime @default(now())
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([status, nextRetryAt])
 }
 
 // Duo invite — member sends 1 free credit to a friend

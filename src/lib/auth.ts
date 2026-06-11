@@ -136,3 +136,40 @@ export async function revokeAllSessions(userId: string) {
     data: { sessionVersion: { increment: 1 } },
   });
 }
+
+// ─── 2FA (email OTP, required for ADMIN sign-in) ──────────────────────────────
+
+const PENDING_2FA_COOKIE = "ilannatek_2fa";
+const PENDING_2FA_MINUTES = 10;
+
+/** Short-lived signed cookie carrying the user awaiting OTP verification. */
+export async function setPending2faCookie(userId: string) {
+  const token = await new SignJWT({ userId, purpose: "2fa" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${PENDING_2FA_MINUTES}m`)
+    .sign(getSecret());
+  cookies().set(PENDING_2FA_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: PENDING_2FA_MINUTES * 60,
+  });
+}
+
+export async function getPending2faUserId(): Promise<string | null> {
+  const token = cookies().get(PENDING_2FA_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (payload.purpose !== "2fa" || typeof payload.userId !== "string") return null;
+    return payload.userId;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPending2faCookie() {
+  cookies().delete(PENDING_2FA_COOKIE);
+}

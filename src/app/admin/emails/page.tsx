@@ -180,6 +180,11 @@ const TEMPLATE_META: Record<
     description: "Notifie les inscrits que l'instructeur a changé — réservation maintenue.",
     trigger: "Assignation d'un remplaçant par l'admin",
   },
+  loginOtp: {
+    label: "Code de connexion (2FA admin)",
+    description: "Code à 6 chiffres exigé à chaque connexion administrateur.",
+    trigger: "Connexion d'un compte ADMIN",
+  },
 };
 
 function previewFor(key: TemplateKey, firstName: string) {
@@ -380,6 +385,8 @@ function previewFor(key: TemplateKey, firstName: string) {
         startTime: new Date(Date.now() + 86400000),
         newInstructorName: "Sophie Dubois",
       });
+    case "loginOtp":
+      return emailTemplates.loginOtp({ firstName, code: "482913" });
   }
 }
 

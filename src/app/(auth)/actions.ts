@@ -3,11 +3,15 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import crypto from "node:crypto";
 import {
   clearSessionCookie,
+  clearPending2faCookie,
   createSession,
   getClientIp,
+  getPending2faUserId,
   hashPassword,
+  setPending2faCookie,
   setSessionCookie,
   verifyPassword,
 } from "@/lib/auth";
@@ -253,6 +257,13 @@ export async function loginAction(
   if (!user.active) return { error: "Compte désactivé" };
   if (user.banned) return { error: "Compte suspendu" };
 
+  // 2FA: admins must confirm a one-time code sent by email before getting a session
+  if (user.role === "ADMIN") {
+    await issueLoginOtp(user.id, user.email, user.firstName);
+    await setPending2faCookie(user.id);
+    redirect("/login/verify");
+  }
+
   await audit({ actorId: user.id, action: "LOGIN", entity: "User", entityId: user.id });
 
   const token = await createSession({
@@ -262,7 +273,100 @@ export async function loginAction(
     v: user.sessionVersion,
   });
   await setSessionCookie(token);
-  redirect(user.role === "ADMIN" ? "/admin" : user.role === "INSTRUCTOR" ? "/instructor" : "/schedule");
+  redirect(user.role === "INSTRUCTOR" ? "/instructor" : "/schedule");
+}
+
+// ─── 2FA helpers ──────────────────────────────────────────────────────────────
+
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+
+function hashOtp(code: string): string {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+async function issueLoginOtp(userId: string, email: string, firstName: string) {
+  // Invalidate previous unused codes so only the latest is valid
+  await db.loginOtp.deleteMany({ where: { userId, usedAt: null } });
+
+  const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+  await db.loginOtp.create({
+    data: {
+      userId,
+      codeHash: hashOtp(code),
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    },
+  });
+
+  await sendEmail({
+    to: email,
+    ...emailTemplates.loginOtp({ firstName, code }),
+  });
+}
+
+export async function verifyOtpAction(
+  _prev: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const userId = await getPending2faUserId();
+  if (!userId) redirect("/login");
+
+  const code = formData.get("code")?.toString().trim() ?? "";
+  if (!/^\d{6}$/.test(code)) return { error: "Code invalide" };
+
+  const otp = await db.loginOtp.findFirst({
+    where: { userId, usedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!otp) return { error: "Code expiré. Reconnectez-vous pour recevoir un nouveau code." };
+  if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+    return { error: "Trop de tentatives. Reconnectez-vous pour recevoir un nouveau code." };
+  }
+
+  // Count the attempt before comparing — a failed compare must consume an attempt
+  await db.loginOtp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
+
+  const expected = Buffer.from(otp.codeHash);
+  const actual = Buffer.from(hashOtp(code));
+  if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+    return { error: "Code incorrect" };
+  }
+
+  // Atomic claim: only one concurrent submission can consume the code
+  const claim = await db.loginOtp.updateMany({
+    where: { id: otp.id, usedAt: null },
+    data: { usedAt: new Date() },
+  });
+  if (claim.count === 0) return { error: "Code déjà utilisé" };
+
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user || !user.active || user.banned || user.role !== "ADMIN") redirect("/login");
+
+  await clearPending2faCookie();
+  await audit({ actorId: user.id, action: "LOGIN_2FA", entity: "User", entityId: user.id });
+
+  const token = await createSession({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    v: user.sessionVersion,
+  });
+  await setSessionCookie(token);
+  redirect("/admin");
+}
+
+export async function resendOtpAction(): Promise<AuthState> {
+  const userId = await getPending2faUserId();
+  if (!userId) redirect("/login");
+
+  const rl = rateLimit(`otp-resend:${userId}`, 3, 10 * 60 * 1000);
+  if (!rl.allowed) return { error: "Trop de renvois. Patientez quelques minutes." };
+
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user || !user.active || user.banned || user.role !== "ADMIN") redirect("/login");
+
+  await issueLoginOtp(user.id, user.email, user.firstName);
+  return null;
 }
 
 export async function logoutAction() {

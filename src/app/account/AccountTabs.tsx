@@ -118,13 +118,6 @@ export default function AccountTabs({
             )}
           </button>
         ))}
-        {/* Navigation link to the recurring slots page */}
-        <Link
-          href="/account/recurring"
-          className="px-5 py-3 text-[11px] uppercase tracking-[0.2em] shrink-0 transition-colors border-b-2 border-transparent text-stone2-500 hover:text-brand-600"
-        >
-          Créneaux récurrents
-        </Link>
       </div>
 
       <div className="mt-5">

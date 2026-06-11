@@ -1,7 +1,10 @@
 // Abstracted email service.
 // In dev: logs to console. In prod: set RESEND_API_KEY → emails go through Resend.
+// On Resend failure the email is persisted to EmailOutbox and retried by
+// /api/cron/email-retry with exponential backoff (max 5 attempts).
 
 import { getSettings } from "./settings";
+import { db } from "./db";
 
 type SendOpts = {
   to: string;
@@ -42,12 +45,37 @@ export async function sendEmail(opts: SendOpts): Promise<void> {
       await sendViaResend(opts, from);
       return;
     } catch (err) {
-      console.error("[email] Resend failure, falling back to console:", err);
+      console.error("[email] Resend failure, queueing for retry:", err);
+      try {
+        await db.emailOutbox.create({
+          data: {
+            to: opts.to,
+            subject: opts.subject,
+            html: opts.html,
+            text: opts.text,
+            lastError: String(err).slice(0, 1000),
+            nextRetryAt: new Date(Date.now() + 5 * 60 * 1000),
+            attempts: 1,
+          },
+        });
+      } catch (dbErr) {
+        console.error("[email] Failed to persist to outbox:", dbErr);
+      }
+      return;
     }
   }
   console.log(
     `[email] to=${opts.to} from=${from} subject="${opts.subject}"\n${opts.text ?? opts.html.slice(0, 200)}`
   );
+}
+
+/**
+ * Used by the email-retry cron: re-attempt a previously failed send.
+ * Throws on failure so the cron can update attempts/backoff.
+ */
+export async function retryOutboxEmail(opts: SendOpts): Promise<void> {
+  const settings = await getSettings();
+  await sendViaResend(opts, settings.emailFrom);
 }
 
 // ─── HTML helpers ───────────────────────────────────────────────────────────────
@@ -757,6 +785,20 @@ export const emailTemplates = {
        <p class="muted">C'est la dernière communication que vous recevrez de notre part.</p>`
     ),
     text: `Bonjour ${args.firstName}, votre compte Ilannatek a été supprimé. Vos données ont été anonymisées (RGPD Art. 17). Questions : privacy@ilannatek.fr`,
+  }),
+
+  loginOtp: (args: { firstName: string; code: string }) => ({
+    subject: `${args.code} — votre code de connexion Ilannatek`,
+    html: wrap(
+      `Code de connexion`,
+      `<p>Bonjour ${esc(args.firstName)},</p>
+       <p>Voici votre code de vérification pour accéder à l'espace administrateur :</p>
+       <div style="margin:24px 0;text-align:center">
+         <span style="font-family:Georgia,serif;font-size:36px;letter-spacing:0.3em;font-weight:600;color:#1C1C1A">${esc(args.code)}</span>
+       </div>
+       <div class="highlight">Ce code expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette connexion, changez votre mot de passe immédiatement.</div>`
+    ),
+    text: `Votre code de connexion Ilannatek : ${args.code} (valable 10 minutes)`,
   }),
 };
 
