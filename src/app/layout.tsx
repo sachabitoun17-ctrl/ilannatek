@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import { getCurrentUser } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "Ilannatek — Studio Boutique",
@@ -29,6 +30,18 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = headers().get("x-invoke-path") ?? "";
+  const isWidget = pathname.startsWith("/widget");
+
+  // Widget pages get a bare shell — no nav, no footer, no chrome
+  if (isWidget) {
+    return (
+      <html lang="fr">
+        <body className="min-h-screen bg-white text-brand-600">{children}</body>
+      </html>
+    );
+  }
+
   const user = await getCurrentUser();
   const isLoggedIn = !!user;
   return (

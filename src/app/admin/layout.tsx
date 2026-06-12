@@ -58,6 +58,7 @@ export default async function AdminLayout({
       title: "Outils",
       items: [
         { href: "/admin/export", label: "Export données" },
+        { href: "/admin/widget", label: "Widget planning" },
       ],
     },
   ];
