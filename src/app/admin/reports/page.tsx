@@ -33,6 +33,7 @@ export default async function ReportsPage() {
     monthlyConsumed,
     dailyBookings,
     sessionsLast30,
+    mrrSubscriptions,
   ] = await Promise.all([
     // ── Encaissements ────────────────────────────────────────────────────────
     db.transaction.aggregate({
@@ -151,7 +152,19 @@ export default async function ReportsPage() {
         bookings: { where: { status: { in: ["CONFIRMED", "ATTENDED"] } }, select: { id: true } },
       },
     }),
+    db.subscription.findMany({
+      where: { status: "ACTIVE", endDate: { gt: now } },
+      select: { plan: { select: { priceCents: true, intervalDays: true } } },
+    }),
   ]);
+
+  // ── Derived: MRR ────────────────────────────────────────────────────────────
+
+  const mrr = mrrSubscriptions.reduce((sum, sub) => {
+    const days = sub.plan.intervalDays ?? 30;
+    return sum + Math.round((sub.plan.priceCents / days) * 30);
+  }, 0);
+  const arr = mrr * 12;
 
   // ── Derived: encaissements ───────────────────────────────────────────────────
 
@@ -242,9 +255,9 @@ export default async function ReportsPage() {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href="/api/export/transactions" className="btn-secondary text-xs">↓ Transactions</a>
-          <a href="/api/export/bookings" className="btn-secondary text-xs">↓ Réservations</a>
-          <a href="/api/export/members" className="btn-secondary text-xs">↓ Membres</a>
+          <a href="/api/admin/export/transactions" className="btn-secondary text-xs">↓ Transactions</a>
+          <a href="/api/admin/export/bookings" className="btn-secondary text-xs">↓ Réservations</a>
+          <a href="/api/admin/export/users" className="btn-secondary text-xs">↓ Membres</a>
         </div>
       </div>
 
@@ -288,6 +301,22 @@ export default async function ReportsPage() {
           </div>
         </div>
       </section>
+
+      {/* ── MRR ─────────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 -mt-4">
+        <Stat
+          label={`MRR — ${mrrSubscriptions.length} abo${mrrSubscriptions.length > 1 ? "s" : ""} actif${mrrSubscriptions.length > 1 ? "s" : ""}`}
+          value={formatPrice(mrr)}
+          hint="Revenu mensuel récurrent prévu"
+          accent
+        />
+        <Stat
+          label="ARR"
+          value={formatPrice(arr)}
+          hint="Extrapolé × 12 mois"
+          accent
+        />
+      </div>
 
       {/* ── Section 2 : CA Réalisé ────────────────────────────────────────────── */}
       <section>

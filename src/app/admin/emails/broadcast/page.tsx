@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { broadcastEmailAction } from "./actions";
+import { broadcastEmailAction, generateEmailBodyAction } from "./actions";
 
 const AUDIENCES = [
   { value: "all", label: "Tous les membres actifs", desc: "Tous les comptes actifs (membres + instructeurs)" },
@@ -17,6 +17,8 @@ export default function BroadcastPage() {
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState("all");
   const [confirmed, setConfirmed] = useState(false);
+  const [generating, startGenerating] = useTransition();
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -92,7 +94,39 @@ export default function BroadcastPage() {
             />
           </div>
           <div>
-            <label className="label" htmlFor="body">Message</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label mb-0" htmlFor="body">Message</label>
+              <button
+                type="button"
+                disabled={generating || !subject.trim()}
+                onClick={() => {
+                  setAiError(null);
+                  startGenerating(async () => {
+                    const r = await generateEmailBodyAction(audience, subject);
+                    if (r.ok) {
+                      setBody(r.body);
+                      setConfirmed(false);
+                    } else {
+                      setAiError(r.error);
+                    }
+                  });
+                }}
+                className="btn-secondary py-1 px-3 text-xs flex items-center gap-1.5 disabled:opacity-40"
+                title={!subject.trim() ? "Saisissez un sujet d'abord" : ""}
+              >
+                {generating ? (
+                  <>
+                    <span className="inline-block w-3 h-3 border border-brand-400 border-t-transparent rounded-full animate-spin" />
+                    Génération…
+                  </>
+                ) : (
+                  <>✦ Générer avec l&apos;IA</>
+                )}
+              </button>
+            </div>
+            {aiError && (
+              <p className="text-xs text-red-600 mb-1">{aiError}</p>
+            )}
             <textarea
               id="body"
               name="body"

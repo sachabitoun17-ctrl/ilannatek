@@ -39,6 +39,71 @@ function buildBroadcastHtml(subject: string, body: string, from: string, siteUrl
   </body></html>`;
 }
 
+export async function generateEmailBodyAction(
+  audience: string,
+  subject: string
+): Promise<{ ok: true; body: string } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY non configuré" };
+  if (!subject.trim()) return { ok: false, error: "Sujet requis pour générer le contenu" };
+
+  const audienceLabels: Record<string, string> = {
+    all: "tous les membres actifs du studio",
+    active_sub: "les membres ayant un abonnement actif",
+    no_sub: "les membres sans abonnement actif (à reconvertir)",
+    zero_credits: "les membres avec un solde de crédits nul (à relancer)",
+  };
+  const audienceDesc = audienceLabels[audience] ?? "les membres du studio";
+
+  const prompt = `Tu es un rédacteur expert en emails marketing pour un studio de fitness boutique haut de gamme parisien.
+Rédige le corps d'un email en français, élégant et chaleureux, destiné à ${audienceDesc}.
+Sujet de l'email : « ${subject} »
+
+Consignes :
+- Ton : professionnel mais humain, proche, bienveillant
+- Longueur : 3 à 5 paragraphes courts
+- Pas de formule de politesse d'ouverture générique (pas de "Cher membre")
+- Commence directement par une accroche percutante liée au sujet
+- Termine par un appel à l'action clair
+- N'inclus pas le sujet dans le corps
+- Retourne uniquement le corps du message (pas de "Objet :", pas de signature, pas d'indication d'envoi)
+- Sépare les paragraphes par une ligne vide`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-8",
+        max_tokens: 1024,
+        thinking: { type: "adaptive" },
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { ok: false, error: (err as { error?: { message?: string } }).error?.message ?? "Erreur API" };
+    }
+
+    const data = await res.json() as {
+      content: Array<{ type: string; text?: string }>;
+    };
+    const body = data.content.find((b) => b.type === "text")?.text ?? "";
+    if (!body) return { ok: false, error: "Réponse vide de l'IA" };
+
+    return { ok: true, body };
+  } catch {
+    return { ok: false, error: "Impossible de contacter l'API Claude" };
+  }
+}
+
 export async function broadcastEmailAction(formData: FormData) {
   const admin = await requireAdmin();
   const subject = (formData.get("subject") as string)?.trim();

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDateShort, relativeTime } from "@/lib/utils";
+import { RelancerButton } from "./RelancerButton";
 
 /**
  * Churn risk report — three tiers based on recency + credits:
@@ -158,7 +159,7 @@ export default async function ChurnPage() {
               <th className="hidden sm:table-cell">Dernier cours</th>
               <th className="hidden md:table-cell text-right">Crédits</th>
               <th className="hidden lg:table-cell text-right">Cours suivis</th>
-              <th></th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone2-100">
@@ -193,13 +194,21 @@ export default async function ChurnPage() {
                   <td className="hidden lg:table-cell text-right text-stone2-600">
                     {u.totalAttended}
                   </td>
-                  <td>
-                    <Link
-                      href={`/admin/users/${u.id}`}
-                      className="text-xs text-stone2-400 hover:text-brand-600 hover:underline"
-                    >
-                      Fiche →
-                    </Link>
+                  <td className="text-right">
+                    <div className="flex flex-col items-end gap-1">
+                      <RelancerButton
+                        userId={u.id}
+                        firstName={u.firstName}
+                        email={u.email}
+                        tier={u.tier}
+                      />
+                      <Link
+                        href={`/admin/users/${u.id}`}
+                        className="text-xs text-stone2-400 hover:text-brand-600 hover:underline"
+                      >
+                        Fiche →
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               );
