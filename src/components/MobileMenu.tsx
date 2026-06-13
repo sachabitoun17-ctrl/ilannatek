@@ -64,18 +64,27 @@ export default function MobileMenu({ user }: { user: User }) {
 
             {/* User info */}
             {user && (
-              <div className="px-6 py-4 border-b border-stone2-700">
+              <Link href="/welcome" onClick={close} className="px-6 py-4 border-b border-stone2-700 hover:bg-brand-700 transition-colors">
                 <p className="text-cream-50 font-medium text-sm">
                   {user.firstName} {user.lastName}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-accent-300 mt-0.5">
                   {user.creditsBalance} crédits
                 </p>
-              </div>
+              </Link>
             )}
 
             {/* Nav links */}
             <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+              {user && (
+                <Link
+                  href="/welcome"
+                  onClick={close}
+                  className="block px-3 py-3 text-[11px] uppercase tracking-[0.22em] text-cream-50 hover:bg-brand-700 transition-colors font-medium"
+                >
+                  Mon espace
+                </Link>
+              )}
               {NAV_LINKS.map((l) => (
                 <Link
                   key={l.href}

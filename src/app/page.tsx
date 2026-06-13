@@ -225,7 +225,6 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-16 md:gap-24 items-center">
             <div>
-              <p className="section-title mb-6">Notre philosophie</p>
               <h2 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 leading-[1.05]">
                 Le format boutique,
                 <br />
@@ -310,7 +309,6 @@ export default async function Home() {
       <section className="bg-cream-50 py-28 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-20">
-            <p className="section-title mb-3">Fonctionnement</p>
             <h2 className="font-serif text-4xl md:text-5xl font-medium text-brand-600 leading-tight">
               Trois étapes, c&apos;est tout.
             </h2>
@@ -318,25 +316,27 @@ export default async function Home() {
           <div className="grid md:grid-cols-3 gap-0 md:gap-px bg-transparent md:bg-stone2-200 md:border md:border-stone2-200">
             {[
               {
-                step: "01",
+                step: 1,
                 title: "Choisir",
                 desc: "Consultez le planning en temps réel. Filtrez par discipline, horaire, instructeur ou lieu.",
               },
               {
-                step: "02",
+                step: 2,
                 title: "Réserver",
                 desc: "Confirmation instantanée par email. Un crédit débité, et c'est validé. Annulation possible jusqu'à 2h avant.",
               },
               {
-                step: "03",
+                step: 3,
                 title: "Venir",
                 desc: "Présentez votre QR code à l'entrée. Check-in en une seconde. Profitez. Recommencez.",
               },
             ].map((item) => (
-              <div key={item.step} className="text-center py-14 px-8 bg-white">
-                <p className="font-serif text-6xl text-accent-500/60 mb-5">{item.step}</p>
+              <div key={item.step} className="py-14 px-8 bg-white">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-accent-500 mb-6">
+                  Étape {item.step}
+                </p>
                 <h3 className="font-serif text-2xl text-brand-600 mb-4">{item.title}</h3>
-                <p className="text-stone2-500 text-sm leading-relaxed max-w-[240px] mx-auto">{item.desc}</p>
+                <p className="text-stone2-500 text-sm leading-relaxed max-w-[240px]">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -523,8 +523,7 @@ export default async function Home() {
       <section className="py-28 px-6 bg-cream-100">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
-            <p className="section-title mb-3">Questions fréquentes</p>
-            <h2 className="font-serif text-4xl font-medium text-brand-600">FAQ</h2>
+            <h2 className="font-serif text-4xl font-medium text-brand-600">Questions fréquentes</h2>
           </div>
           <div className="divide-y divide-stone2-200">
             {FAQ.map((item) => (

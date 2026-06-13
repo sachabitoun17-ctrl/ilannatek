@@ -46,18 +46,22 @@ export default function Navbar({ user }: Props) {
               >
                 Instructeurs
               </Link>
-              <Link
-                href="/packs"
-                className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
-              >
-                Crédits
-              </Link>
-              <Link
-                href="/subscriptions"
-                className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
-              >
-                Abonnements
-              </Link>
+              {!user && (
+                <>
+                  <Link
+                    href="/packs"
+                    className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
+                  >
+                    Crédits
+                  </Link>
+                  <Link
+                    href="/subscriptions"
+                    className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
+                  >
+                    Abonnements
+                  </Link>
+                </>
+              )}
               {user?.role === "INSTRUCTOR" && (
                 <Link
                   href="/instructor"
@@ -81,15 +85,18 @@ export default function Navbar({ user }: Props) {
           <div className="hidden md:flex items-center gap-5">
             {user ? (
               <>
-                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-accent-300">
+                <Link
+                  href="/packs"
+                  className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-accent-300 hover:text-accent-200 transition-colors"
+                >
                   <span className="h-1.5 w-1.5 rounded-full bg-accent-400" />
                   {user.creditsBalance} crédits
-                </span>
+                </Link>
                 <Link
-                  href="/account"
+                  href="/welcome"
                   className="text-[11px] uppercase tracking-[0.22em] text-cream-50 hover:text-accent-300 transition-colors"
                 >
-                  {user.firstName}
+                  Mon espace
                 </Link>
                 <Link
                   href="/schedule"
@@ -99,7 +106,7 @@ export default function Navbar({ user }: Props) {
                 </Link>
                 <form action={logoutAction}>
                   <button className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 hover:text-cream-50 transition-colors">
-                    Sortir
+                    Déconnexion
                   </button>
                 </form>
               </>
@@ -109,7 +116,7 @@ export default function Navbar({ user }: Props) {
                   href="/login"
                   className="text-[11px] uppercase tracking-[0.22em] text-cream-50 hover:text-accent-300 transition-colors"
                 >
-                  Mon compte
+                  Se connecter
                 </Link>
                 <Link
                   href="/schedule"
@@ -124,9 +131,12 @@ export default function Navbar({ user }: Props) {
           {/* Mobile: credits hint + hamburger */}
           <div className="flex md:hidden items-center gap-2">
             {user && (
-              <span className="text-[10px] uppercase tracking-[0.18em] text-accent-300">
+              <Link
+                href="/packs"
+                className="text-[10px] uppercase tracking-[0.18em] text-accent-300"
+              >
                 {user.creditsBalance} cr.
-              </span>
+              </Link>
             )}
             <MobileMenu user={user} />
           </div>

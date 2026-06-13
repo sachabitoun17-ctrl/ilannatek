@@ -36,7 +36,15 @@ export default async function WelcomePage() {
           status: { in: ["CONFIRMED", "ATTENDED"] },
           session: { startTime: { lte: now } },
         },
-        include: { session: { select: { startTime: true } } },
+        include: {
+          session: {
+            select: {
+              startTime: true,
+              classType: { select: { name: true } },
+              location: { select: { name: true } },
+            },
+          },
+        },
         orderBy: { session: { startTime: "desc" } },
         take: 50,
       }),
@@ -76,7 +84,10 @@ export default async function WelcomePage() {
   const isInstructor = user.role === "INSTRUCTOR" || user.role === "ADMIN";
   const checkInOpen = !!checkInToken;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  // Last 5 attended sessions for the history panel
+  const lastSessions = recentBookings
+    .filter((b) => b.status === "ATTENDED" || b.session.startTime < now)
+    .slice(0, 5);
 
   const DAYS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
@@ -200,7 +211,7 @@ export default async function WelcomePage() {
                     </div>
                   ))}
                   <Link href="/account" className="block text-center text-[10px] uppercase tracking-[0.2em] text-stone2-500 hover:text-accent-300 transition-colors pt-1">
-                    Voir toutes mes réservations →
+                    Toutes mes réservations →
                   </Link>
                 </>
               ) : nextSession ? (
@@ -258,216 +269,44 @@ export default async function WelcomePage() {
         </div>
       </section>
 
-      {/* ─── FEATURE GUIDE ──────────────────────────────────────────── */}
-      <section className="bg-cream-50 py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-14">
-            <p className="section-title mb-2">Guide complet</p>
-            <h2 className="font-serif text-4xl font-medium text-brand-600">Tout ce que vous pouvez faire</h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-stone2-200 border border-stone2-200">
-
-            {/* Planning */}
-            <Link href="/schedule" className="group bg-white p-7 hover:bg-cream-50 transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">📅</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Planning</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2 group-hover:text-accent-600 transition-colors">Planning & Réservation</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Consultez les cours à venir, filtrez par discipline ou instructeur, réservez en un clic avec vos crédits.
-                Annulation gratuite jusqu'à {settings.cancellationCutoffMin / 60}h avant.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· Vue semaine / liste / discipline</li>
-                <li>· Réservation instantanée avec confirmation email</li>
-                <li>· Annulation libre jusqu'à {settings.cancellationCutoffMin / 60}h avant</li>
-                <li>· Inscription en liste d'attente si cours complet</li>
-              </ul>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 group-hover:text-accent-600 transition-colors">
-                Voir le planning →
-              </p>
-            </Link>
-
-            {/* Mon compte */}
-            <Link href="/account" className="group bg-white p-7 hover:bg-cream-50 transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">👤</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Compte</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2 group-hover:text-accent-600 transition-colors">Mon espace membre</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Tableau de bord personnel : crédits, réservations, historique, statistiques, série de présence, et gestion de l'abonnement.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· Solde de crédits en temps réel</li>
-                <li>· Historique complet des réservations</li>
-                <li>· Statistiques : séries, cours du mois, total</li>
-                <li>· Gestion abonnement (pause, résiliation)</li>
-              </ul>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 group-hover:text-accent-600 transition-colors">
-                Mon compte →
-              </p>
-            </Link>
-
-            {/* Crédits & Packs */}
-            <Link href="/packs" className="group bg-white p-7 hover:bg-cream-50 transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">💳</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Paiement</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2 group-hover:text-accent-600 transition-colors">Crédits & Packs</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Achetez des crédits à la carte pour réserver vos cours. Paiement sécurisé Stripe.
-                Crédits sans date d'expiration.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· Différents packs selon vos besoins</li>
-                <li>· Paiement Stripe PCI DSS Level 1</li>
-                <li>· Crédits utilisables sur tous les cours</li>
-                <li>· Historique des transactions</li>
-              </ul>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 group-hover:text-accent-600 transition-colors">
-                Acheter des crédits →
-              </p>
-            </Link>
-
-            {/* Abonnements */}
-            <Link href="/subscriptions" className="group bg-white p-7 hover:bg-cream-50 transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">🔄</p>
-                <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 bg-accent-100 text-accent-600 border border-accent-200">Populaire</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2 group-hover:text-accent-600 transition-colors">Abonnements mensuels</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Crédits renouvelés automatiquement chaque mois. La meilleure option pour une pratique régulière.
-                Sans engagement, résiliable à tout moment.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· Renouvellement automatique mensuel</li>
-                <li>· Meilleur prix au crédit</li>
-                <li>· Pause possible (congés, blessure)</li>
-                <li>· Résiliation en un clic depuis le compte</li>
-              </ul>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 group-hover:text-accent-600 transition-colors">
-                Voir les abonnements →
-              </p>
-            </Link>
-
-            {/* Liste d'attente */}
-            <div className="bg-white p-7">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">⏳</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Automatique</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2">Liste d'attente intelligente</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Cours complet ? Rejoignez la liste d'attente gratuitement. Dès qu'une place se libère,
-                vous recevez un email avec 30 minutes pour confirmer votre place.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· Inscription sans engagement (aucun crédit débité)</li>
-                <li>· Notification email dès qu'une place se libère</li>
-                <li>· 30 minutes pour accepter l'offre</li>
-                <li>· Priorité par ordre d'inscription</li>
-              </ul>
-              <Link href="/schedule" className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 block hover:text-accent-600 transition-colors">
-                Voir les cours →
+      {/* ─── RECENT SESSIONS ─────────────────────────────────────────── */}
+      {lastSessions.length > 0 && (
+        <section className="bg-white py-14 px-6 border-b border-stone2-100">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="font-serif text-2xl text-brand-600 font-medium">Dernières séances</h2>
+              <Link
+                href="/account"
+                className="text-[11px] uppercase tracking-[0.18em] text-stone2-400 hover:text-brand-600 transition-colors border-b border-stone2-200 pb-px"
+              >
+                Historique complet →
               </Link>
             </div>
-
-            {/* Check-in QR */}
-            <Link href="/account" className="group bg-white p-7 hover:bg-cream-50 transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">📱</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Check-in</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2 group-hover:text-accent-600 transition-colors">QR Code Check-in</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                À l'entrée du cours, présentez votre QR code personnel depuis l'application.
-                Check-in enregistré en une seconde. Plus de file d'attente.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· QR code unique par membre</li>
-                <li>· Check-in 30 min avant et pendant le cours</li>
-                <li>· Présence enregistrée dans vos stats</li>
-                <li>· Auto-check-in possible depuis l'app</li>
-              </ul>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 group-hover:text-accent-600 transition-colors">
-                Mon QR code →
-              </p>
-            </Link>
-
-            {/* Rappels */}
-            <div className="bg-white p-7">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">🔔</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Email</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2">Rappels automatiques</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Vous ne raterez plus jamais un cours. Rappels automatiques envoyés par email
-                la veille et 2 heures avant chaque cours réservé.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· Email J-1 avec détails du cours</li>
-                <li>· Email 2h avant pour ne rien oublier</li>
-                <li>· Email post-cours avec vos stats</li>
-                <li>· Récap hebdomadaire chaque dimanche</li>
-              </ul>
-              <Link href="/account/profile" className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 block hover:text-accent-600 transition-colors">
-                Préférences email →
-              </Link>
+            <div className="divide-y divide-stone2-100">
+              {lastSessions.map((b) => (
+                <div key={b.id} className="py-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-brand-600 text-sm">
+                      {b.session.classType?.name ?? "Cours"}
+                    </p>
+                    <p className="text-stone2-400 text-xs mt-0.5">
+                      {b.session.startTime.toLocaleDateString("fr-FR", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                      })}
+                      {b.session.location && ` · ${b.session.location.name}`}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[9px] uppercase tracking-widest text-stone2-400">
+                    {b.status === "ATTENDED" ? "Présent" : "Passé"}
+                  </span>
+                </div>
+              ))}
             </div>
-
-            {/* Mode Duo */}
-            <Link href="/invite" className="group bg-white p-7 hover:bg-cream-50 transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">👥</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Parrainage</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2 group-hover:text-accent-600 transition-colors">Mode Duo — Inviter un ami</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Parrainez un proche et gagnez chacun 1 crédit offert dès son inscription.
-                Plus vous invitez, plus vous pratiquez.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· 1 crédit offert pour vous</li>
-                <li>· 1 crédit offert pour votre filleul</li>
-                <li>· Lien d'invitation personnalisé</li>
-                <li>· Illimité — invitez autant d'amis que vous voulez</li>
-              </ul>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 group-hover:text-accent-600 transition-colors">
-                Inviter un ami →
-              </p>
-            </Link>
-
-            {/* Profil */}
-            <Link href="/account/profile" className="group bg-white p-7 hover:bg-cream-50 transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl">⚙️</p>
-                <span className="text-[9px] uppercase tracking-widest text-stone2-400 border border-stone2-200 px-2 py-0.5">Paramètres</span>
-              </div>
-              <h3 className="font-medium text-brand-600 mb-2 group-hover:text-accent-600 transition-colors">Mon profil & Paramètres</h3>
-              <p className="text-sm text-stone2-500 leading-relaxed mb-4">
-                Gérez vos informations personnelles, mot de passe, préférences de confidentialité
-                et options de communication.
-              </p>
-              <ul className="space-y-1.5 text-xs text-stone2-400">
-                <li>· Modifier nom, email, téléphone</li>
-                <li>· Changer le mot de passe</li>
-                <li>· Opt-in/out emails marketing (RGPD)</li>
-                <li>· Visibilité dans la liste des participants</li>
-              </ul>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-600 mt-5 group-hover:text-accent-600 transition-colors">
-                Mon profil →
-              </p>
-            </Link>
-
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ─── INSTRUCTOR SECTION (role-gated) ────────────────────────── */}
       {isInstructor && (
@@ -539,40 +378,6 @@ export default async function WelcomePage() {
           </div>
         </section>
       )}
-
-      {/* ─── DISCIPLINES REMINDER ───────────────────────────────────── */}
-      <section className="bg-cream-100 py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-serif text-2xl text-brand-600 font-medium">Les disciplines du studio</h2>
-            <Link href="/classes" className="text-[11px] uppercase tracking-[0.18em] text-stone2-500 hover:text-brand-600 transition-colors border-b border-stone2-300 pb-1">
-              Toutes les disciplines →
-            </Link>
-          </div>
-          <Link href="/schedule" className="block border border-stone2-200 bg-white p-6 hover:bg-cream-50 transition-colors text-center">
-            <p className="font-serif text-xl text-brand-600 mb-1">Voir le planning complet</p>
-            <p className="text-sm text-stone2-400">Trouvez votre prochain cours et réservez en quelques secondes</p>
-          </Link>
-        </div>
-      </section>
-
-      {/* ─── HELP / LINKS ───────────────────────────────────────────── */}
-      <section className="bg-cream-50 py-12 px-6 border-t border-stone2-200">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-6">
-          <div>
-            <p className="font-serif text-lg text-brand-600 mb-1">Une question ?</p>
-            <p className="text-sm text-stone2-500">
-              Consultez le{" "}
-              <Link href="/" className="underline hover:text-brand-600">planning</Link>,{" "}
-              ou écrivez-nous directement depuis votre espace.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/schedule" className="btn-primary text-sm">Réserver un cours</Link>
-            <Link href="/account" className="btn-secondary text-sm">Mon espace</Link>
-          </div>
-        </div>
-      </section>
 
     </div>
   );

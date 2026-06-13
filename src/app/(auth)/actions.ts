@@ -273,7 +273,7 @@ export async function loginAction(
     v: user.sessionVersion,
   });
   await setSessionCookie(token);
-  redirect(user.role === "INSTRUCTOR" ? "/instructor" : "/schedule");
+  redirect(user.role === "INSTRUCTOR" ? "/instructor" : "/welcome");
 }
 
 // ─── 2FA helpers ──────────────────────────────────────────────────────────────
