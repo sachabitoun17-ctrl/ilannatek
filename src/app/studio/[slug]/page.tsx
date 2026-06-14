@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
@@ -48,7 +49,12 @@ const FAQ = [
 ];
 
 export default async function StudioPage({ params }: { params: { slug: string } }) {
-  const base = `/studio/${params.slug}`;
+  const studio = await db.studio.findUnique({
+    where: { slug: params.slug },
+    select: { id: true, status: true },
+  });
+  if (!studio || studio.status !== "ACTIVE") notFound();
+
   const now = new Date();
 
   const [user, settings, classTypes, instructors, memberCount, sessionCount, upcomingSessions, allPlans] =
