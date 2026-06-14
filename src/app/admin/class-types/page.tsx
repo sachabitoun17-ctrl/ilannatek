@@ -2,13 +2,16 @@ import { db } from "@/lib/db";
 import { createClassTypeAction, deleteClassTypeAction } from "./actions";
 import DeleteForm from "@/components/DeleteForm";
 import { AdminToast } from "@/components/AdminToast";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function ClassTypesPage({
   searchParams,
 }: {
   searchParams: { success?: string; error?: string };
 }) {
-  const items = await db.classType.findMany({ orderBy: { name: "asc" } });
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
+  const items = await db.classType.findMany({ where: { studioId }, orderBy: { name: "asc" } });
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />

@@ -17,7 +17,7 @@ const schema = z.object({
 });
 
 export async function createPlanAction(formData: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const raw = Object.fromEntries(formData.entries());
   const data = schema.parse({
     name: raw.name,
@@ -28,7 +28,7 @@ export async function createPlanAction(formData: FormData) {
     creditsPerCycle: raw.creditsPerCycle || undefined,
     description: raw.description || undefined,
   });
-  await db.plan.create({ data });
+  await db.plan.create({ data: { ...data, studioId: user.studioId } });
   revalidatePath("/packs");
   revalidatePath("/subscriptions");
   redirect("/admin/plans?success=✓ Plan créé");

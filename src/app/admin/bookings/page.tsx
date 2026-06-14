@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth";
 
 const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: "Confirmé",
@@ -22,9 +23,14 @@ export default async function AdminBookingsPage({
 }: {
   searchParams: { status?: string };
 }) {
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
   const status = searchParams.status;
   const bookings = await db.booking.findMany({
-    where: status ? { status } : undefined,
+    where: {
+      ...(status ? { status } : {}),
+      session: { studioId },
+    },
     include: {
       user: { select: { firstName: true, lastName: true, email: true } },
       session: {

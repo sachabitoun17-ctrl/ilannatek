@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDateShort, relativeTime } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth";
 import { RelancerButton } from "./RelancerButton";
 
 /**
@@ -35,6 +36,8 @@ function tierLabel(t: RiskTier) {
 }
 
 export default async function ChurnPage() {
+  const adminUser = await requireAdmin();
+  const studioId = adminUser.studioId ?? undefined;
   const now = new Date();
   const ago14  = new Date(now.getTime() - 14  * 86_400_000);
   const ago30  = new Date(now.getTime() - 30  * 86_400_000);
@@ -44,6 +47,7 @@ export default async function ChurnPage() {
   // Find users with at least one session in the past 6 months but none in the last 14 days
   const users = await db.user.findMany({
     where: {
+      studioId,
       active: true,
       banned: false,
       bookings: {

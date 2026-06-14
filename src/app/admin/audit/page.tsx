@@ -1,11 +1,13 @@
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function AuditPage({
   searchParams,
 }: {
   searchParams: { action?: string; actor?: string };
 }) {
+  await requireAdmin();
   const logs = await db.auditLog.findMany({
     where: {
       ...(searchParams.action ? { action: searchParams.action } : {}),

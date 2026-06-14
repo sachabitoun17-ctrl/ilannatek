@@ -15,7 +15,7 @@ const schema = z.object({
 });
 
 export async function createClassTypeAction(formData: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const data = schema.parse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
@@ -23,7 +23,7 @@ export async function createClassTypeAction(formData: FormData) {
     creditCost: formData.get("creditCost"),
     color: formData.get("color") || "#ec4899",
   });
-  await db.classType.create({ data });
+  await db.classType.create({ data: { ...data, studioId: user.studioId } });
   redirect("/admin/class-types?success=✓ Type de cours créé");
 }
 

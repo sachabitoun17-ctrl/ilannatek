@@ -100,6 +100,15 @@ export async function createStudioClient(
       },
     });
 
+    // Provision default Settings for the new studio
+    await tx.settings.create({
+      data: {
+        id: `settings_${newStudio.id}`,
+        studioId: newStudio.id,
+        studioName: d.studioName,
+      },
+    });
+
     return newStudio;
   });
 

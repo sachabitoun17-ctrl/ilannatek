@@ -1,14 +1,15 @@
 export const dynamic = "force-dynamic";
 import { requireAdmin } from "@/lib/auth";
-import { getCachedLocations } from "@/lib/cached";
+import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import WidgetConfig from "./WidgetConfig";
 
 export default async function AdminWidgetPage() {
-  await requireAdmin();
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
 
   const [locations, settings] = await Promise.all([
-    getCachedLocations(),
+    db.location.findMany({ where: { studioId }, orderBy: { name: "asc" } }),
     getSettings(),
   ]);
 

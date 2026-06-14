@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { emailTemplates } from "@/lib/email";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import EmailsClient from "./EmailsClient";
 
@@ -391,7 +391,7 @@ function previewFor(key: TemplateKey, firstName: string) {
 }
 
 export default async function EmailsPage() {
-  const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
+  const [user, settings] = await Promise.all([requireAdmin(), getSettings()]);
 
   const keys = Object.keys(emailTemplates) as TemplateKey[];
   const templates = keys.flatMap((k) => {

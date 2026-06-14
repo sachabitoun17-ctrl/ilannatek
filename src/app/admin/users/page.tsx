@@ -2,23 +2,27 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { adjustCreditsAction } from "./actions";
 import RoleSelect from "./RoleSelect";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function UsersPage({
   searchParams,
 }: {
   searchParams: { q?: string };
 }) {
+  const admin = await requireAdmin();
+  const studioId = admin.studioId ?? undefined;
   const q = searchParams.q?.trim();
   const users = await db.user.findMany({
     where: q
       ? {
+          studioId,
           OR: [
             { email: { contains: q } },
             { firstName: { contains: q } },
             { lastName: { contains: q } },
           ],
         }
-      : undefined,
+      : { studioId },
     orderBy: { createdAt: "desc" },
     take: 200,
   });

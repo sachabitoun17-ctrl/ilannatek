@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
+import { requireAdmin } from "@/lib/auth";
 
-export default function AdminExportPage() {
+export default async function AdminExportPage() {
+  await requireAdmin();
   return (
     <div className="space-y-8">
       <div>

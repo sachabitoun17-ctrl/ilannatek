@@ -12,12 +12,12 @@ const schema = z.object({
 });
 
 export async function createLocationAction(formData: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const data = schema.parse({
     name: formData.get("name"),
     address: formData.get("address") || undefined,
   });
-  await db.location.create({ data });
+  await db.location.create({ data: { ...data, studioId: user.studioId } });
   redirect("/admin/locations?success=✓ Studio créé");
 }
 

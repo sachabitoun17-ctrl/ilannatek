@@ -86,6 +86,7 @@ export const getCurrentUser = cache(async function getCurrentUser() {
       active: true,
       banned: true,
       creditsFrozenUntil: true,
+      studioId: true,
     },
   });
   if (!user) return null;

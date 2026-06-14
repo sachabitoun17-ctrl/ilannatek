@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { createInstructorAction, toggleInstructorRoleAction } from "./actions";
 import { AdminToast } from "@/components/AdminToast";
+import { requireAdmin } from "@/lib/auth";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
@@ -13,8 +14,10 @@ export default async function InstructorsPage({
 }: {
   searchParams: { success?: string; error?: string };
 }) {
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
   const instructors = await db.user.findMany({
-    where: { role: { in: ["INSTRUCTOR", "ADMIN"] } },
+    where: { studioId, role: { in: ["INSTRUCTOR", "ADMIN"] } },
     orderBy: { firstName: "asc" },
   });
   return (

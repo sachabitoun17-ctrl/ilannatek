@@ -12,8 +12,8 @@ datasource db {
 // ── Multi-tenant org layer ────────────────────────────────────────────────
 // Account = a paying customer of the platform (one brand / company).
 // Studio  = a bookable location belonging to an account, addressed by slug.
-// Phase 1 (current): org structure + superadmin oversight, data still global.
-// Phase 2 (next): every Session/Plan/Settings/User scoped by studioId. See ARCHITECTURE.md.
+// Phase 1: org structure + superadmin oversight.
+// Phase 2 (current): Session/Location/ClassType/Plan/PromoCode/RecurringRule/Settings scoped by studioId.
 model Account {
   id           String   @id @default(cuid())
   name         String
@@ -41,7 +41,14 @@ model Studio {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members   User[]   @relation("StudioMembers")
+  members        User[]          @relation("StudioMembers")
+  sessions       Session[]       @relation("StudioSessions")
+  locations      Location[]      @relation("StudioLocations")
+  classTypes     ClassType[]     @relation("StudioClassTypes")
+  recurringRules RecurringRule[] @relation("StudioRecurringRules")
+  plans          Plan[]          @relation("StudioPlans")
+  promoCodes     PromoCode[]     @relation("StudioPromoCodes")
+  settings       Settings[]      @relation("StudioSettings")
 
   @@index([accountId])
 }
@@ -110,16 +117,22 @@ model LoginAttempt {
 
 model Location {
   id        String   @id @default(cuid())
+  studioId  String?
+  studio    Studio?  @relation("StudioLocations", fields: [studioId], references: [id])
   name      String
   address   String?
   timezone  String   @default("Europe/Paris")
   createdAt DateTime @default(now())
 
   sessions Session[]
+
+  @@index([studioId])
 }
 
 model ClassType {
   id          String   @id @default(cuid())
+  studioId    String?
+  studio      Studio?  @relation("StudioClassTypes", fields: [studioId], references: [id])
   name        String
   description String?
   durationMin Int      @default(60)
@@ -130,10 +143,14 @@ model ClassType {
 
   sessions       Session[]
   recurringRules RecurringRule[]
+
+  @@index([studioId])
 }
 
 model RecurringRule {
   id           String   @id @default(cuid())
+  studioId     String?
+  studio       Studio?  @relation("StudioRecurringRules", fields: [studioId], references: [id])
   classTypeId  String
   classType    ClassType @relation(fields: [classTypeId], references: [id])
   instructorId String
@@ -145,10 +162,14 @@ model RecurringRule {
   startDate    DateTime
   endDate      DateTime
   createdAt    DateTime  @default(now())
+
+  @@index([studioId])
 }
 
 model Session {
   id           String    @id @default(cuid())
+  studioId     String?
+  studio       Studio?   @relation("StudioSessions", fields: [studioId], references: [id])
   classTypeId  String
   classType    ClassType @relation(fields: [classTypeId], references: [id])
   instructorId String
@@ -171,6 +192,7 @@ model Session {
   subRequest SubRequest?
 
   @@index([startTime])
+  @@index([studioId, startTime])
   @@index([instructorId, startTime])
   @@index([locationId, startTime])
 }
@@ -216,6 +238,8 @@ model CheckIn {
 
 model Plan {
   id              String   @id @default(cuid())
+  studioId        String?
+  studio          Studio?  @relation("StudioPlans", fields: [studioId], references: [id])
   name            String
   description     String?
   type            String   // CREDIT_PACK | SUBSCRIPTION
@@ -234,6 +258,8 @@ model Plan {
 
   subscriptions Subscription[]
   transactions  Transaction[]
+
+  @@index([studioId])
 }
 
 model Subscription {
@@ -259,6 +285,8 @@ model Subscription {
 
 model PromoCode {
   id           String   @id @default(cuid())
+  studioId     String?
+  studio       Studio?  @relation("StudioPromoCodes", fields: [studioId], references: [id])
   code         String   @unique
   description  String?
   // discount type: PERCENT or FIXED_CENTS or FREE_CREDITS
@@ -273,6 +301,8 @@ model PromoCode {
   createdAt    DateTime @default(now())
 
   redemptions PromoRedemption[]
+
+  @@index([studioId])
 }
 
 model PromoRedemption {
@@ -422,6 +452,8 @@ model SubRequest {
 
 model Settings {
   id                    String   @id @default("singleton")
+  studioId              String?  @unique
+  studio                Studio?  @relation("StudioSettings", fields: [studioId], references: [id])
   studioName            String   @default("Ilannatek")
   // cancellation cutoff in minutes (members can't cancel within this window)
   cancellationCutoffMin Int      @default(120)

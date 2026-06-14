@@ -5,7 +5,8 @@ import AssignSubClient from "./AssignSubClient";
 export const dynamic = "force-dynamic";
 
 export default async function AdminSubRequestsPage() {
-  await requireAdmin();
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
 
   const [openRequests, instructors] = await Promise.all([
     db.subRequest.findMany({
@@ -23,7 +24,7 @@ export default async function AdminSubRequestsPage() {
       orderBy: { session: { startTime: "asc" } },
     }),
     db.user.findMany({
-      where: { role: { in: ["INSTRUCTOR", "ADMIN"] }, active: true },
+      where: { studioId, role: { in: ["INSTRUCTOR", "ADMIN"] }, active: true },
       select: { id: true, firstName: true, lastName: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),

@@ -1,10 +1,9 @@
 export const dynamic = "force-dynamic";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { getCachedPlans } from "@/lib/cached";
+import { getStudioContext } from "@/lib/studio";
 import { formatPrice } from "@/lib/utils";
 
 const TESTIMONIALS = [
@@ -49,21 +48,18 @@ const FAQ = [
 ];
 
 export default async function StudioPage({ params }: { params: { slug: string } }) {
-  const studio = await db.studio.findUnique({
-    where: { slug: params.slug },
-    select: { id: true, status: true },
-  });
-  if (!studio || studio.status !== "ACTIVE") notFound();
+  const studio = await getStudioContext(params.slug);
+  const studioId = studio.id;
 
   const now = new Date();
 
   const [user, settings, classTypes, instructors, memberCount, sessionCount, upcomingSessions, allPlans] =
     await Promise.all([
       getCurrentUser(),
-      getSettings(),
-      db.classType.findMany({ where: { active: true }, take: 8, orderBy: { name: "asc" } }),
+      getSettings(studioId),
+      db.classType.findMany({ where: { studioId, active: true }, take: 8, orderBy: { name: "asc" } }),
       db.user.findMany({
-        where: { role: "INSTRUCTOR", active: true },
+        where: { studioId, role: "INSTRUCTOR", active: true },
         take: 4,
         select: {
           id: true,
@@ -73,10 +69,10 @@ export default async function StudioPage({ params }: { params: { slug: string } 
           instructorPhoto: true,
         },
       }),
-      db.user.count({ where: { role: "USER", active: true } }),
-      db.session.count({ where: { status: "COMPLETED" } }),
+      db.user.count({ where: { studioId, role: "USER", active: true } }),
+      db.session.count({ where: { studioId, status: "COMPLETED" } }),
       db.session.findMany({
-        where: { status: "SCHEDULED", startTime: { gt: now } },
+        where: { studioId, status: "SCHEDULED", startTime: { gt: now } },
         orderBy: { startTime: "asc" },
         take: 4,
         include: {
@@ -86,11 +82,11 @@ export default async function StudioPage({ params }: { params: { slug: string } 
           _count: { select: { bookings: { where: { status: "CONFIRMED" } } } },
         },
       }),
-      getCachedPlans(),
+      db.plan.findMany({ where: { studioId, active: true }, orderBy: { priceCents: "asc" } }),
     ]);
 
-  const packs = allPlans.filter((p) => p.type === "CREDIT_PACK" && p.active && !p.introOnly).slice(0, 3);
-  const subs = allPlans.filter((p) => p.type === "SUBSCRIPTION" && p.active).slice(0, 3);
+  const packs = allPlans.filter((p) => p.type === "CREDIT_PACK" && !p.introOnly).slice(0, 3);
+  const subs = allPlans.filter((p) => p.type === "SUBSCRIPTION").slice(0, 3);
 
   const trustStats = [
     { value: memberCount > 10 ? `${memberCount}+` : "100+", label: "Membres actifs" },
@@ -133,7 +129,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
-                  href="/schedule"
+                  href={`/studio/${params.slug}/schedule`}
                   className="inline-flex items-center justify-center px-10 py-4 bg-cream-50 text-brand-600 text-[11px] uppercase tracking-[0.25em] font-semibold hover:bg-accent-200 transition-colors min-h-[54px]"
                 >
                   Voir le planning
@@ -166,7 +162,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                   return (
                     <Link
                       key={s.id}
-                      href="/schedule"
+                      href={`/studio/${params.slug}/schedule`}
                       className="block bg-white/[0.06] border border-white/10 px-4 py-3.5 hover:bg-white/[0.10] hover:border-white/20 transition-colors group"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -199,7 +195,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                   );
                 })}
                 <Link
-                  href="/schedule"
+                  href={`/studio/${params.slug}/schedule`}
                   className="block text-center text-[10px] uppercase tracking-[0.2em] text-stone2-500 hover:text-accent-300 transition-colors pt-2"
                 >
                   Planning complet →
@@ -248,7 +244,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
               </p>
               <div className="pt-4 border-t border-stone2-100">
                 <Link
-                  href="/classes"
+                  href={`/studio/${params.slug}/schedule`}
                   className="text-[11px] uppercase tracking-[0.2em] text-brand-600 border-b border-brand-600/40 pb-1 hover:border-brand-600 transition-colors"
                 >
                   Découvrir nos disciplines →
@@ -270,7 +266,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                 <span className="italic font-normal">une exigence.</span>
               </h2>
               <Link
-                href="/schedule"
+                href={`/studio/${params.slug}/schedule`}
                 className="inline-flex items-center text-[11px] uppercase tracking-[0.22em] text-cream-50 border-b border-cream-50/40 pb-1 hover:border-cream-50 hover:text-accent-300 transition-colors shrink-0"
               >
                 Voir le planning complet
@@ -280,7 +276,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
               {classTypes.map((ct) => (
                 <Link
                   key={ct.id}
-                  href="/schedule"
+                  href={`/studio/${params.slug}/schedule`}
                   className="group bg-brand-600 p-8 hover:bg-brand-700 transition-colors"
                 >
                   <div
@@ -336,7 +332,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
             ))}
           </div>
           <div className="text-center mt-14">
-            <Link href="/schedule" className="btn-primary">
+            <Link href={`/studio/${params.slug}/schedule`} className="btn-primary">
               Voir les cours disponibles
             </Link>
           </div>
@@ -352,7 +348,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                 Vos instructeurs
               </h2>
               <Link
-                href="/instructors"
+                href={`/studio/${params.slug}/instructors`}
                 className="text-[11px] uppercase tracking-[0.2em] text-stone2-500 hover:text-brand-600 transition-colors border-b border-stone2-300 pb-1 shrink-0"
               >
                 Toute l&apos;équipe →
@@ -441,7 +437,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                     );
                   })}
                   <Link
-                    href="/packs"
+                    href={`/studio/${params.slug}/packs`}
                     className="block text-center text-[11px] uppercase tracking-[0.22em] text-brand-600 border border-brand-600 py-3 hover:bg-brand-600 hover:text-cream-50 transition-colors mt-4"
                   >
                     Voir tous les packs →
@@ -452,7 +448,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                   <p className="text-stone2-500 text-sm mb-4">
                     Achetez des crédits, utilisez-les quand vous voulez. Pas d&apos;expiration.
                   </p>
-                  <Link href="/packs" className="text-[11px] uppercase tracking-[0.22em] text-brand-600 border-b border-brand-600/40 pb-1 hover:border-brand-600 transition-colors">
+                  <Link href={`/studio/${params.slug}/packs`} className="text-[11px] uppercase tracking-[0.22em] text-brand-600 border-b border-brand-600/40 pb-1 hover:border-brand-600 transition-colors">
                     Voir les packs →
                   </Link>
                 </div>
@@ -482,7 +478,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                     </div>
                   ))}
                   <Link
-                    href="/subscriptions"
+                    href={`/studio/${params.slug}/subscriptions`}
                     className="block text-center text-[11px] uppercase tracking-[0.22em] text-brand-600 bg-cream-50 border border-stone2-200 py-3 hover:bg-stone2-100 transition-colors mt-4"
                   >
                     Voir les abonnements →
@@ -493,7 +489,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                   <p className="text-stone2-300 text-sm mb-4">
                     Crédits renouvelés automatiquement chaque mois. La meilleure option pour les habitué·e·s.
                   </p>
-                  <Link href="/subscriptions" className="text-[11px] uppercase tracking-[0.22em] text-accent-300 border-b border-accent-300/40 pb-1 hover:border-accent-300 transition-colors">
+                  <Link href={`/studio/${params.slug}/subscriptions`} className="text-[11px] uppercase tracking-[0.22em] text-accent-300 border-b border-accent-300/40 pb-1 hover:border-accent-300 transition-colors">
                     Voir les abonnements →
                   </Link>
                 </div>
@@ -555,7 +551,7 @@ export default async function StudioPage({ params }: { params: { slug: string } 
                 Créer mon compte
               </Link>
               <Link
-                href="/schedule"
+                href={`/studio/${params.slug}/schedule`}
                 className="inline-flex items-center justify-center px-10 py-4 border border-cream-50/40 text-cream-50 text-[11px] uppercase tracking-[0.25em] font-medium hover:border-cream-50 hover:bg-cream-50/5 transition-colors min-h-[54px]"
               >
                 Voir le planning

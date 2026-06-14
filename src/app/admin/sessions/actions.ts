@@ -36,7 +36,7 @@ const sessionSchema = z.object({
 });
 
 export async function createSessionAction(formData: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const data = sessionSchema.parse({
     classTypeId: formData.get("classTypeId"),
     instructorId: formData.get("instructorId"),
@@ -63,6 +63,7 @@ export async function createSessionAction(formData: FormData) {
       endTime: end,
       capacity: data.capacity,
       notes: data.notes,
+      studioId: user.studioId,
     },
   });
   revalidatePath("/admin/sessions");

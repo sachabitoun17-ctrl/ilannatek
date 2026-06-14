@@ -3,13 +3,16 @@ import { createPromoAction, togglePromoAction, deletePromoAction } from "./actio
 import DeleteForm from "@/components/DeleteForm";
 import { formatPrice } from "@/lib/utils";
 import { AdminToast } from "@/components/AdminToast";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function PromosPage({
   searchParams,
 }: {
   searchParams: { success?: string; error?: string };
 }) {
-  const codes = await db.promoCode.findMany({ orderBy: { createdAt: "desc" } });
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
+  const codes = await db.promoCode.findMany({ where: { studioId }, orderBy: { createdAt: "desc" } });
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />

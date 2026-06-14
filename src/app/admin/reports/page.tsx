@@ -1,9 +1,12 @@
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth";
 import { RevenueChart } from "./RevenueChart";
 import { BookingsChart } from "./BookingsChart";
 
 export default async function ReportsPage() {
+  const adminUser = await requireAdmin();
+  const studioId = adminUser.studioId ?? undefined;
   const now = new Date();
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -146,7 +149,7 @@ export default async function ReportsPage() {
        GROUP BY day ORDER BY day ASC`
     ),
     db.session.findMany({
-      where: { startTime: { gte: ago30, lte: now }, status: "SCHEDULED", capacity: { gt: 0 } },
+      where: { studioId, startTime: { gte: ago30, lte: now }, status: "SCHEDULED", capacity: { gt: 0 } },
       select: {
         capacity: true,
         bookings: { where: { status: { in: ["CONFIRMED", "ATTENDED"] } }, select: { id: true } },

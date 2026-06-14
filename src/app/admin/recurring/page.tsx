@@ -1,14 +1,17 @@
 import { db } from "@/lib/db";
 import { createRecurringAction } from "./actions";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function RecurringPage() {
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
   const [classTypes, instructors, locations] = await Promise.all([
-    db.classType.findMany({ orderBy: { name: "asc" } }),
+    db.classType.findMany({ where: { studioId }, orderBy: { name: "asc" } }),
     db.user.findMany({
-      where: { role: { in: ["ADMIN", "INSTRUCTOR"] } },
+      where: { studioId, role: { in: ["ADMIN", "INSTRUCTOR"] } },
       orderBy: { firstName: "asc" },
     }),
-    db.location.findMany({ orderBy: { name: "asc" } }),
+    db.location.findMany({ where: { studioId }, orderBy: { name: "asc" } }),
   ]);
 
   return (

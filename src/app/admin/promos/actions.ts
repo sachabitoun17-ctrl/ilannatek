@@ -33,6 +33,7 @@ export async function createPromoAction(formData: FormData) {
       maxUses: data.maxUses,
       expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
       description: data.description,
+      studioId: admin.studioId,
     },
   });
   await audit({

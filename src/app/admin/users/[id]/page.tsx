@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDateShort, formatPrice, relativeTime } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth";
 import {
   adminAdjustCreditsAction,
   adminBanUserAction,
@@ -33,8 +34,10 @@ export default async function AdminUserDetailPage({
 }: {
   params: { id: string };
 }) {
+  const admin = await requireAdmin();
+  const studioId = admin.studioId ?? undefined;
   const user = await db.user.findUnique({
-    where: { id: params.id },
+    where: { id: params.id, studioId },
     include: {
       subscriptions: {
         include: { plan: true },

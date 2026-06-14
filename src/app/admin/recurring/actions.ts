@@ -53,6 +53,7 @@ export async function createRecurringAction(formData: FormData) {
       capacity: data.capacity,
       startDate: start,
       endDate: end,
+      studioId: admin.studioId,
     },
   });
 
@@ -75,6 +76,7 @@ export async function createRecurringAction(formData: FormData) {
         endTime: sessionEnd,
         capacity: data.capacity,
         recurringRuleId: rule.id,
+        studioId: admin.studioId,
       },
     });
     created++;

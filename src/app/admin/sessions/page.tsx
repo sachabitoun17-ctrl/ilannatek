@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 import { deleteSessionAction } from "./actions";
 import DeleteForm from "@/components/DeleteForm";
+import { requireAdmin } from "@/lib/auth";
 
 const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: "Programmé",
@@ -11,7 +12,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function AdminSessionsPage() {
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
   const sessions = await db.session.findMany({
+    where: { studioId },
     include: {
       classType: true,
       instructor: { select: { firstName: true, lastName: true } },

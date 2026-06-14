@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { db } from "@/lib/db";
 import { formatTime } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth";
 import SessionForm from "../SessionForm";
 import { updateSessionAction } from "../actions";
 import BookingsManager from "./BookingsManager";
@@ -11,8 +12,10 @@ export default async function EditSessionPage({
 }: {
   params: { id: string };
 }) {
+  const adminUser = await requireAdmin();
+  const studioId = adminUser.studioId ?? undefined;
   const session = await db.session.findUnique({
-    where: { id: params.id },
+    where: { id: params.id, studioId },
     include: {
       classType: true,
       instructor: { select: { firstName: true, lastName: true } },

@@ -7,13 +7,16 @@ import {
 } from "./actions";
 import DeleteForm from "@/components/DeleteForm";
 import { AdminToast } from "@/components/AdminToast";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function PlansPage({
   searchParams,
 }: {
   searchParams: { success?: string; error?: string };
 }) {
-  const plans = await db.plan.findMany({ orderBy: { priceCents: "asc" } });
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
+  const plans = await db.plan.findMany({ where: { studioId }, orderBy: { priceCents: "asc" } });
   return (
     <div className="space-y-6">
       <AdminToast message={searchParams.success ?? searchParams.error ?? null} />

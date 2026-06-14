@@ -1,13 +1,17 @@
 import { db } from "@/lib/db";
 import { endOfDay, formatPrice, startOfDay } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function AdminDashboard() {
+  const user = await requireAdmin();
+  const studioId = user.studioId ?? undefined;
   const today = new Date();
   const [users, sessionsToday, bookingsToday, revenueRow, upcomingSessions] =
     await Promise.all([
-      db.user.count(),
+      db.user.count({ where: { studioId } }),
       db.session.count({
         where: {
+          studioId,
           startTime: { gte: startOfDay(today), lte: endOfDay(today) },
         },
       }),
@@ -29,7 +33,7 @@ export default async function AdminDashboard() {
         },
       }),
       db.session.findMany({
-        where: { startTime: { gte: today }, status: "SCHEDULED" },
+        where: { studioId, startTime: { gte: today }, status: "SCHEDULED" },
         include: {
           classType: true,
           instructor: { select: { firstName: true, lastName: true } },
