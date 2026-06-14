@@ -26,6 +26,47 @@ async function main() {
   const adminPw = await bcrypt.hash("admin1234", 10);
   const memberPw = await bcrypt.hash("member1234", 10);
   const instrPw = await bcrypt.hash("instructor1234", 10);
+  const superPw = await bcrypt.hash("super1234", 10);
+
+  // ─── Multi-tenant : compte + studio ────────────────────────────────────────────
+  const account = await db.account.upsert({
+    where: { slug: "ilannatek" },
+    update: {},
+    create: {
+      id: "acc_ilannatek",
+      name: "Ilannatek",
+      slug: "ilannatek",
+      plan: "PRO",
+      status: "ACTIVE",
+      contactEmail: "contact@ilannatek.fr",
+    },
+  });
+  await db.studio.upsert({
+    where: { slug: "ilannatek-paris" },
+    update: {},
+    create: {
+      id: "stu_ilannatek",
+      accountId: account.id,
+      name: "Ilannatek · Paris",
+      slug: "ilannatek-paris",
+      city: "Paris",
+      status: "ACTIVE",
+    },
+  });
+
+  // ─── Superadmin (propriétaire plateforme) ──────────────────────────────────────
+  await db.user.upsert({
+    where: { email: "super@ilannatek.fr" },
+    update: { role: "SUPERADMIN" },
+    create: {
+      email: "super@ilannatek.fr",
+      passwordHash: superPw,
+      firstName: "Super",
+      lastName: "Admin",
+      role: "SUPERADMIN",
+      creditsBalance: 0,
+    },
+  });
 
   // ─── Admin ────────────────────────────────────────────────────────────────────
   const admin = await db.user.upsert({
@@ -412,7 +453,8 @@ async function main() {
     console.log(`✓ ${pastSessions.length} séances passées avec réservations`);
   }
 
-  console.log(`\n✓ Admin        : admin@ilannatek.fr / admin1234`);
+  console.log(`\n✓ Superadmin   : super@ilannatek.fr / super1234`);
+  console.log(`✓ Admin        : admin@ilannatek.fr / admin1234`);
   console.log(`✓ Membre       : sasha.dupont@test.fr / member1234`);
   console.log(`✓ Instructeur  : camille@ilannatek.fr / instructor1234`);
   console.log(`✓ ${membres.length} membres, ${instructors.length} instructeurs, ${classTypes.length} types de cours`);

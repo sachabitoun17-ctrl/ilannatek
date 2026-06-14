@@ -103,7 +103,15 @@ export async function requireUser() {
 export async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role !== "ADMIN") redirect("/");
+  if (user.role !== "ADMIN" && user.role !== "SUPERADMIN") redirect("/");
+  return user;
+}
+
+// Platform owner — sees every account / studio across the whole product.
+export async function requireSuperAdmin() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role !== "SUPERADMIN") redirect("/");
   return user;
 }
 

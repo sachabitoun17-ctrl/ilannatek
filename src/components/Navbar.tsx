@@ -70,12 +70,20 @@ export default function Navbar({ user }: Props) {
                   Espace pro
                 </Link>
               )}
-              {user?.role === "ADMIN" && (
+              {(user?.role === "ADMIN" || user?.role === "SUPERADMIN") && (
                 <Link
                   href="/admin"
                   className="text-[11px] uppercase tracking-[0.22em] text-stone2-300 hover:text-cream-50 transition-colors"
                 >
                   Admin
+                </Link>
+              )}
+              {user?.role === "SUPERADMIN" && (
+                <Link
+                  href="/superadmin"
+                  className="text-[11px] uppercase tracking-[0.22em] text-accent-300 hover:text-accent-200 transition-colors"
+                >
+                  Superadmin
                 </Link>
               )}
             </nav>

@@ -2,16 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 :root {
-  --background: #f7f3ec;
+  --background: #f5f5f4;
   --surface: #ffffff;
-  --foreground: #1c1c1a;
-  --muted: #6e6555;
-  --line: #e8e0ce;
-  --ink: #1c1c1a;
-  --gold: #a07b3a;
+  --foreground: #16181f;
+  --muted: #65655f;
+  --line: #e5e5e2;
+  --ink: #16181f;
+  --accent: #f2481f;
 }
 
 html,
@@ -21,6 +21,7 @@ body {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .font-serif {
@@ -28,20 +29,25 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Tabular figures for stats / counts / prices */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
 @layer components {
-  /* Base button */
+  /* Base button — modern: soft radius, sentence case, medium weight */
   .btn {
-    @apply inline-flex items-center justify-center rounded-none px-6 py-3 text-xs font-medium uppercase tracking-[0.18em] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px];
   }
 
-  /* Primary — deep ink */
+  /* Primary — ink */
   .btn-primary {
-    @apply btn bg-brand-600 text-cream-50 hover:bg-brand-700;
+    @apply btn bg-brand-600 text-cream-50 hover:bg-brand-500 active:scale-[0.98];
   }
 
   /* Secondary — outlined */
   .btn-secondary {
-    @apply btn border border-brand-600 bg-transparent text-brand-600 hover:bg-brand-600 hover:text-cream-50;
+    @apply btn border border-stone2-300 bg-transparent text-brand-600 hover:border-brand-600 hover:bg-brand-600 hover:text-cream-50 active:scale-[0.98];
   }
 
   /* Ghost */
@@ -51,37 +57,37 @@ body {
 
   /* Danger */
   .btn-danger {
-    @apply btn bg-red-900 text-cream-50 hover:bg-red-950;
+    @apply btn bg-red-600 text-white hover:bg-red-700 active:scale-[0.98];
   }
 
-  /* Accent — warm gold (rare highlight) */
+  /* Accent — vermillion energy (rare, high-intent CTA) */
   .btn-accent {
-    @apply btn bg-accent-500 text-cream-50 hover:bg-accent-600;
+    @apply btn bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98];
   }
 
-  /* Card — clean cream */
+  /* Card — clean white, soft radius, hairline border */
   .card {
-    @apply bg-white border border-stone2-100 p-6;
+    @apply bg-white border border-stone2-100 rounded-2xl p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)];
   }
 
   /* Input */
   .input {
-    @apply block w-full border border-stone2-200 bg-white px-3 py-2.5 text-sm focus:border-brand-600 focus:outline-none focus:ring-0 placeholder:text-stone2-400;
+    @apply block w-full rounded-xl border border-stone2-200 bg-white px-3.5 py-2.5 text-sm text-brand-600 transition-colors focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/10 placeholder:text-stone2-400;
   }
 
-  /* Label — uppercase, spacious */
+  /* Label — clean, sentence case, readable */
   .label {
-    @apply block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone2-500 mb-1.5;
+    @apply block text-xs font-medium text-stone2-600 mb-1.5;
   }
 
-  /* Badge */
+  /* Badge — soft pill */
   .badge {
-    @apply inline-flex items-center px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider;
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium;
   }
 
-  /* Section title — sant-roch eyebrow */
+  /* Section eyebrow — kept as an opt-in helper, no longer a default scaffold */
   .section-title {
-    @apply text-[10px] font-semibold uppercase tracking-[0.22em] text-stone2-500 mb-1;
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent-500 mb-2;
   }
 
   /* Display heading — serif */
@@ -92,7 +98,7 @@ body {
 
   /* Table header cell */
   .th {
-    @apply text-[10px] font-normal uppercase tracking-[0.18em] text-stone2-500 pb-2;
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-stone2-500 pb-2;
   }
 }
 
@@ -102,6 +108,17 @@ body {
   width: 8px;
 }
 .cal-scroll::-webkit-scrollbar-thumb {
-  background: #ddd5c5;
+  background: #dcdcd9;
   border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

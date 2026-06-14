@@ -5,53 +5,58 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Sant-roch inspired: deep ink as primary action, warm cream surface
+        // Modern cool-ink: dark surfaces, primary actions, primary text.
         brand: {
-          50: "#F5F2EC",
-          100: "#EAE3D4",
-          200: "#D4C7AC",
-          300: "#B7A47D",
-          400: "#8E7A52",
-          500: "#5E513A",
-          600: "#1C1C1A", // primary
-          700: "#0F0F0E",
-          800: "#000000",
+          50: "#EEF0F4",
+          100: "#D9DCE3",
+          200: "#B4B9C6",
+          300: "#878D9F",
+          400: "#565C6E",
+          500: "#2C313E",
+          600: "#16181F", // primary ink
+          700: "#0E0F14",
+          800: "#08090C",
           900: "#000000",
         },
-        // Warm gold accent (subtle highlights, badges)
+        // Vermillion energy — highlights, badges, the occasional bold CTA.
         accent: {
-          50: "#FBF6EC",
-          100: "#F3E8CE",
-          200: "#E6D29D",
-          300: "#D4B36A",
-          400: "#BC944A",
-          500: "#A07B3A",
-          600: "#7E5F2B",
+          50: "#FFF1ED",
+          100: "#FFDFD6",
+          200: "#FFBCA9",
+          300: "#FF9374", // bright text on dark
+          400: "#FF6A43",
+          500: "#F2481F", // primary accent
+          600: "#CE360F",
+          700: "#A32A0C",
         },
-        // Off-white / cream surfaces
+        // Clean, cool-neutral light surfaces (kills the warm "AI cream" tell).
         cream: {
-          DEFAULT: "#F7F3EC",
-          50: "#FAF7F1",
-          100: "#F2EDE2",
-          200: "#E8E0CE",
+          DEFAULT: "#F5F5F4",
+          50: "#FBFBFA",
+          100: "#F1F1EF",
+          200: "#E5E5E2",
         },
-        // Warm-toned grays (replace cold neutral)
+        // Neutral grays (de-warmed for a crisper, more modern feel).
         stone2: {
-          50: "#F8F6F1",
-          100: "#EFEAE0",
-          200: "#DDD5C5",
-          300: "#BFB5A1",
-          400: "#928775",
-          500: "#6E6555",
-          600: "#4E4738",
-          700: "#322E25",
-          800: "#1F1D17",
-          900: "#13110D",
+          50: "#F6F6F5",
+          100: "#ECECEA",
+          200: "#DCDCD9",
+          300: "#BFBFBB",
+          400: "#8C8C87",
+          500: "#65655F",
+          600: "#474742",
+          700: "#2B2B27",
+          800: "#1A1A17",
+          900: "#101010",
         },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         serif: ["Cormorant Garamond", "Georgia", "serif"],
+      },
+      borderRadius: {
+        xl: "0.75rem",
+        "2xl": "1rem",
       },
     },
   },

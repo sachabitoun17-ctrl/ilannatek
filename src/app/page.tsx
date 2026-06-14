@@ -103,7 +103,7 @@ export default async function Home() {
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(ellipse 60% 75% at 5% 10%, rgba(188,148,74,0.18) 0%, transparent 55%), radial-gradient(ellipse 45% 55% at 95% 90%, rgba(160,123,58,0.14) 0%, transparent 50%), radial-gradient(ellipse 30% 40% at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 60%)",
+              "radial-gradient(ellipse 60% 75% at 5% 10%, rgba(242,72,31,0.20) 0%, transparent 55%), radial-gradient(ellipse 45% 55% at 95% 90%, rgba(255,106,67,0.12) 0%, transparent 50%), radial-gradient(ellipse 30% 40% at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 60%)",
           }}
         />
         {/* Vertical rule */}
@@ -113,8 +113,8 @@ export default async function Home() {
           <div className="flex flex-col lg:flex-row lg:items-end gap-16 lg:gap-28">
             {/* Left: main copy */}
             <div className="flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.5em] text-accent-300 mb-8">
-                Studio Boutique · Paris
+              <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-accent-300 mb-8">
+                Studio boutique · Paris
               </p>
               <h1
                 className="font-serif font-medium text-cream-50 leading-[0.88] mb-8"
@@ -122,9 +122,9 @@ export default async function Home() {
               >
                 {settings.studioName}
               </h1>
-              <p className="text-stone2-300 text-lg md:text-xl leading-relaxed mb-12 max-w-md font-light">
-                Des cours de qualité, en petit groupe, avec des instructeurs qui vous connaissent.
-                Réservez en 10 secondes.
+              <p className="text-stone2-200 text-lg md:text-xl leading-relaxed mb-12 max-w-md font-light">
+                Des cours en petit groupe, des coachs qui connaissent votre prénom,
+                et une réservation qui prend dix secondes. Pas plus.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
@@ -543,7 +543,7 @@ export default async function Home() {
             className="absolute inset-0 pointer-events-none"
             style={{
               backgroundImage:
-                "radial-gradient(ellipse 50% 60% at 20% 50%, rgba(188,148,74,0.12) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 80% 50%, rgba(160,123,58,0.10) 0%, transparent 55%)",
+                "radial-gradient(ellipse 50% 60% at 20% 50%, rgba(242,72,31,0.16) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 80% 50%, rgba(255,106,67,0.10) 0%, transparent 55%)",
             }}
           />
           <div className="relative z-10">

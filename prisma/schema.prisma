@@ -9,6 +9,41 @@ datasource db {
 
 // SQLite does not support native enums. Validation lives in src/lib/enums.ts (Zod).
 
+// ── Multi-tenant org layer ────────────────────────────────────────────────
+// Account = a paying customer of the platform (one brand / company).
+// Studio  = a bookable location belonging to an account, addressed by slug.
+// Phase 1 (current): org structure + superadmin oversight, data still global.
+// Phase 2 (next): every Session/Plan/Settings/User scoped by studioId. See ARCHITECTURE.md.
+model Account {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  // SaaS plan tier the client pays us for
+  plan         String   @default("STARTER") // STARTER | PRO | SCALE
+  status       String   @default("ACTIVE")  // ACTIVE | TRIAL | SUSPENDED
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studios      Studio[]
+}
+
+model Studio {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  // URL slug, e.g. /studio/ilannatek-marais
+  slug      String   @unique
+  city      String?
+  timezone  String   @default("Europe/Paris")
+  status    String   @default("ACTIVE") // ACTIVE | PAUSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
 model User {
   id              String   @id @default(cuid())
   email           String   @unique

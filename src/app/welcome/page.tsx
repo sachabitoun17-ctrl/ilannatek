@@ -100,7 +100,7 @@ export default async function WelcomePage() {
           className="absolute inset-0 opacity-[0.08] pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 15% 50%, #A07B3A 0%, transparent 55%), radial-gradient(circle at 85% 20%, #BC944A 0%, transparent 45%)",
+              "radial-gradient(circle at 15% 50%, #F2481F 0%, transparent 55%), radial-gradient(circle at 85% 20%, #FF6A43 0%, transparent 45%)",
           }}
         />
         <div className="max-w-6xl mx-auto relative z-10">
