@@ -55,13 +55,13 @@ export default async function RootLayout({
         <footer className="mt-20 border-t border-stone2-200 bg-cream-100 md:block pb-20 md:pb-0">
           <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
             <p className="text-[10px] uppercase tracking-[0.25em] text-stone2-500">
-              Ilannatek — Studio Boutique
+              Ilannatek — Plateforme studio
             </p>
             <div className="flex flex-wrap gap-6">
-              <a href="/classes" className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 hover:text-brand-600 transition-colors">Cours</a>
-              <a href="/instructors" className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 hover:text-brand-600 transition-colors">Instructeurs</a>
+              <a href="/studio/ilannatek-paris" className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 hover:text-brand-600 transition-colors">Le studio</a>
               <a href="/schedule" className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 hover:text-brand-600 transition-colors">Planning</a>
               <a href="/packs" className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 hover:text-brand-600 transition-colors">Crédits</a>
+              <a href="/register" className="text-[10px] uppercase tracking-[0.2em] text-stone2-400 hover:text-brand-600 transition-colors">Créer un studio</a>
             </div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-stone2-400">
               © {new Date().getFullYear()} · Tous droits réservés
