@@ -1,84 +1,137 @@
-# Architecture — Ilannatek (multi-tenant)
+# Architecture — Ilannatek (plateforme multi-studios)
 
-Ce document décrit comment la plateforme passe d'**un seul studio** à un **SaaS multi-clients**, et pourquoi le découpage est fait ainsi.
+Revue d'architecture + plan de correction. Ce document fait foi.
 
-## Le modèle mental
+---
+
+## 1. Le problème actuel (ce qui est « n'importe quoi »)
+
+Aujourd'hui l'app est **mono-studio déguisée** :
+
+- `/` (la home) est la **landing du studio Ilannatek** (planning, tarifs, instructeurs). ❌
+  → Or `/` devrait vendre **la plateforme** à des gérants de studios (nos clients).
+- Les pages membres (`/schedule`, `/welcome`, `/packs`, `/account`…) sont **globales**, pas rattachées à un studio. ❌
+  → Un membre devrait vivre **uniquement dans l'espace de SON studio**.
+- Les données (Session, Plan, ClassType, Settings…) ne portent **aucun `studioId`**. ❌
+  → Impossible d'avoir deux studios sans que leurs cours/membres se mélangent.
+
+Conséquence : on ne peut pas onboarder un 2ᵉ client sans tout casser.
+
+---
+
+## 2. Le modèle cible (deux surfaces distinctes)
 
 ```
-Account (le client qui nous paie)
-  └── Studio (un lieu réservable, identifié par un slug)
-        └── Sessions / Plans / Membres / Réglages  (les données métier)
+┌─────────────────────────────────────────────────────────────┐
+│  SURFACE A — PLATEFORME (notre produit SaaS)                 │
+│  Public : gérants de studios (= nos clients), prospects, nous│
+│                                                              │
+│   /                  landing SaaS « gérez votre studio »     │
+│   /tarifs            les plans STARTER / PRO / SCALE          │
+│   /demo, /signup     créer un compte studio                  │
+│   /superadmin        NOUS : tous les comptes & studios       │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  SURFACE B — STUDIO (l'espace d'un studio précis)           │
+│  Public : les membres de CE studio uniquement                │
+│                                                              │
+│   /studio/[slug]              vitrine publique du studio      │
+│   /studio/[slug]/schedule     planning + réservation          │
+│   /studio/[slug]/login        connexion (scopée au studio)    │
+│   /studio/[slug]/welcome      espace membre                   │
+│   /studio/[slug]/account      compte, crédits, QR             │
+│   /studio/[slug]/admin        admin DE CE studio              │
+│   /studio/[slug]/instructor   espace instructeur de ce studio │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-- **Account** = une entreprise cliente (une marque). C'est l'entité de facturation côté SaaS (plan STARTER / PRO / SCALE).
-- **Studio** = un lieu physique réservable, adressé par un `slug` unique (`/studio/ilannatek-paris`). Un Account peut en avoir **plusieurs**.
-- **SUPERADMIN** = nous (le propriétaire de la plateforme). Voit tous les Accounts et Studios via `/superadmin`.
-- **ADMIN** = le gérant d'un studio. Voit uniquement **son** studio via `/admin`.
+**Règle d'or :** un membre n'existe que dans **un** studio. Il ne peut ni voir,
+ni réserver, ni se connecter à un autre studio.
 
-## Les rôles
+---
 
-| Rôle | Périmètre | Espace |
+## 3. Le modèle de données
+
+```
+Account (le client qui paie)
+  └── Studio (slug)                ← l'unité de tenant
+        ├── User (membres, admins, instructeurs)   .studioId
+        ├── Session / ClassType / Location          .studioId
+        ├── Plan / PromoCode                        .studioId
+        └── Settings (1 par studio)                 .studioId
+```
+
+- **Account** : facturation SaaS (plan STARTER/PRO/SCALE). Peut posséder plusieurs Studios (une chaîne).
+- **Studio** : l'unité de cloisonnement. Tout porte un `studioId`.
+- **SUPERADMIN** : `studioId = null`, voit tout. **ADMIN/INSTRUCTOR/USER** : rattachés à un studio.
+
+### Rôles & périmètre
+
+| Rôle | studioId | Accès |
 |---|---|---|
-| `SUPERADMIN` | Toute la plateforme, tous les clients | `/superadmin` |
-| `ADMIN` | Un studio (son studio) | `/admin` |
-| `INSTRUCTOR` | Ses cours | `/instructor` |
-| `USER` | Membre d'un studio | `/welcome` |
+| `SUPERADMIN` | null | `/superadmin` — tous les studios |
+| `ADMIN` | son studio | `/studio/[slug]/admin` — son studio seul |
+| `INSTRUCTOR` | son studio | `/studio/[slug]/instructor` |
+| `USER` | son studio | `/studio/[slug]/welcome` |
 
-`requireSuperAdmin()` et `requireAdmin()` (qui accepte aussi SUPERADMIN) sont dans `src/lib/auth.ts`.
+---
 
-## Routage par slug (cible)
+## 4. Résolution du studio courant
 
-```
-/                         → site vitrine de la plateforme (marketing SaaS)
-/studio/[slug]            → page publique d'un studio (planning, tarifs)
-/studio/[slug]/schedule   → réservation pour ce studio
-/welcome                  → espace membre (scopé à son studio)
-/admin                    → admin du studio courant
-/superadmin               → console plateforme (tous les clients)
-```
+Un seul helper, `getStudioContext()`, source unique de vérité :
 
-Le slug du studio est résolu en `Studio` → `studioId`, injecté dans toutes les requêtes métier.
+- **Surface B publique** (`/studio/[slug]/*`) → studio résolu depuis le **slug d'URL**.
+- **Connecté** → studio résolu depuis **`user.studioId`** ; si le slug d'URL ≠ studio du user → 404/redirect. Un membre ne peut pas « sortir » de son studio en changeant l'URL.
+- Toutes les requêtes métier passent par un wrapper `scopedDb(studioId)` qui injecte `where: { studioId }`. Aucune requête métier ne s'exécute sans studio.
 
-## Phasage (important)
+---
 
-L'architecture est introduite **sans casser l'app existante**, en deux temps.
+## 5. Plan de migration (par étapes, sans casser la prod)
 
-### Phase 1 — FAIT (cette itération)
-- Modèles `Account` + `Studio` ajoutés au schéma (additifs, non bloquants).
-- Rôle `SUPERADMIN` + `requireSuperAdmin()`.
-- Console `/superadmin` : liste des comptes, studios, et KPIs plateforme (MRR, revenu, membres, séances).
-- Seed : compte `ilannatek` + studio `ilannatek-paris` + utilisateur superadmin.
-- Les données métier (Session, Plan, User…) restent **globales** : il n'y a qu'un studio, donc tout lui appartient implicitement.
+### ✅ Phase 0 — FAIT
+- Modèles `Account` + `Studio` (slug).
+- Rôle `SUPERADMIN` + `/superadmin` (console plateforme).
+- **`User.studioId`** ajouté ; backfill SQL : tous les membres existants → `stu_ilannatek`.
+- Seed : compte + studio + superadmin.
 
-### Phase 2 — À FAIRE (scoping des données)
-Quand on signe le 2ᵉ client, on scope les données par studio :
+### ▶ Phase 1 — Routage (prochaine étape, la grosse)
+1. Créer le groupe de routes `app/studio/[slug]/` et **y déplacer** les pages membres/admin/instructeur actuelles.
+2. `app/page.tsx` devient la **landing SaaS** (vend la plateforme).
+3. `getStudioContext()` + layout `studio/[slug]/layout.tsx` qui résout le studio et le passe en contexte.
+4. Auth scopée : `register`/`login` sous `/studio/[slug]`, redirections vers `/studio/[slug]/welcome`. Garde : `user.studioId` doit matcher le slug.
+5. Redirections de compat : anciens liens `/schedule` → `/studio/[defaultSlug]/schedule` tant qu'il n'y a qu'un studio.
 
-1. Ajouter `studioId String` (FK → Studio) sur : `User`, `Session`, `Location`, `ClassType`, `Plan`, `PromoCode`, `Settings`, `RecurringRule`.
-   - Migration : `UPDATE … SET "studioId" = 'stu_ilannatek'` pour l'existant, puis passer la colonne en `NOT NULL`.
-2. Centraliser la résolution du studio courant dans un helper `getStudioContext()` (depuis le slug d'URL pour le public, depuis `user.studioId` pour les espaces connectés).
-3. Ajouter `where: { studioId }` à **toutes** les requêtes Prisma métier. Un wrapper `scopedDb(studioId)` ou un middleware Prisma garantit qu'on n'oublie aucune requête.
-4. `Settings` devient **par studio** (aujourd'hui singleton) : la PK passe de `'singleton'` à `studioId`.
-5. Le widget public (`/api/widget/sessions`) prend un paramètre `?studio=slug`.
+### ▶ Phase 2 — Scoping des données
+- Ajouter `studioId` (NOT NULL après backfill) sur `Session`, `Location`, `ClassType`, `Plan`, `PromoCode`, `RecurringRule`.
+- `Settings` : passe de singleton à **1 ligne par studio** (PK = `studioId`).
+- Injecter `where: { studioId }` dans **toutes** les requêtes (via `scopedDb`).
+- Widget public : `/api/widget/sessions?studio=slug`.
 
-### Phase 3 — Confort SaaS
-- Onboarding self-service : un Account crée son Studio, choisit son slug, importe ses cours.
-- Domaines personnalisés (`reserver.monstudio.fr` → résout vers le bon studio).
-- Facturation Stripe au niveau Account (abonnement SaaS), distincte des paiements membres.
-- Rôles fins : un ADMIN multi-studios (chaîne) vs un ADMIN mono-studio.
+### ▶ Phase 3 — Confort SaaS
+- Onboarding self-service (un gérant crée son studio + slug + importe ses cours).
+- Domaines personnalisés (`reserver.monstudio.fr`).
+- Facturation Stripe au niveau Account (abonnement plateforme).
 
-## Pourquoi ce découpage
+---
 
-- **Account ≠ Studio** dès le départ : une chaîne (plusieurs lieux, une facturation) est un cas réel ; les fusionner obligerait à tout refondre plus tard.
-- **Slug porté par le Studio** (pas l'Account) : c'est le lieu qu'on réserve, donc l'URL publique s'articule autour du studio.
-- **Scoping additif** : on ne réécrit pas 100 requêtes d'un coup. On introduit la structure, on migre l'existant vers un studio par défaut, puis on scope progressivement — l'app reste en production à chaque étape.
-- **SUPERADMIN séparé d'ADMIN** : un gérant de studio ne doit jamais voir les données d'un autre client. La frontière est un rôle, pas une convention.
+## 6. Décisions tranchées
 
-## Fichiers clés
+- **Routage par chemin `/studio/[slug]`** (pas sous-domaine) : simple, déployable tout de suite, pas de DNS wildcard. Les sous-domaines viendront en Phase 3 sans rien casser (un middleware réécrira `slug.domaine` → `/studio/slug`).
+- **Account ≠ Studio** dès le départ : une chaîne (plusieurs lieux, 1 facture) est un cas réel.
+- **Slug porté par le Studio** (pas l'Account) : c'est le lieu qu'on réserve.
+- **Migration additive** : on ne réécrit pas 100 requêtes d'un coup ; on déplace les routes, on backfill vers un studio par défaut, puis on scope progressivement. La prod reste en ligne à chaque étape.
+
+---
+
+## 7. Fichiers clés
 
 | Fichier | Rôle |
 |---|---|
-| `prisma/schema.prisma` | Modèles `Account`, `Studio` |
+| `prisma/schema.prisma` | `Account`, `Studio`, `User.studioId` |
 | `src/lib/auth.ts` | `requireSuperAdmin()`, `requireAdmin()` |
-| `src/app/superadmin/` | Console plateforme |
-| `prisma/seed.ts` | Seed compte + studio + superadmin |
-| `prisma/migrations/fix_missing_columns.sql` | Rattrapage prod (inclut Account/Studio) |
+| `src/lib/studio.ts` *(à créer)* | `getStudioContext()`, `scopedDb()` |
+| `src/app/page.tsx` | → deviendra la landing SaaS |
+| `src/app/studio/[slug]/` *(à créer)* | l'espace d'un studio |
+| `src/app/superadmin/` | console plateforme |
+| `prisma/migrations/fix_missing_columns.sql` | rattrapage prod (Account/Studio/studioId + backfill) |

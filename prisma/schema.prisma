@@ -41,6 +41,8 @@ model Studio {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  members   User[]   @relation("StudioMembers")
+
   @@index([accountId])
 }
 
@@ -52,6 +54,10 @@ model User {
   lastName        String
   phone           String?
   role            String   @default("USER")
+  // Tenant scoping: the studio this member belongs to. Members only ever see
+  // their own studio. Null for SUPERADMIN (platform-level, studio-agnostic).
+  studioId        String?
+  studio          Studio?  @relation("StudioMembers", fields: [studioId], references: [id])
   creditsBalance  Int      @default(0)
   instructorBio   String?
   instructorPhoto String?

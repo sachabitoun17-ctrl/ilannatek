@@ -79,6 +79,7 @@ async function main() {
       lastName: "Ilannatek",
       role: "ADMIN",
       creditsBalance: 100,
+      studioId: "stu_ilannatek",
     },
   });
 
@@ -123,6 +124,7 @@ async function main() {
         lastName: i.lastName,
         role: "INSTRUCTOR",
         instructorBio: i.bio,
+        studioId: "stu_ilannatek",
       },
     });
     instructors.push(u);
@@ -159,6 +161,7 @@ async function main() {
         lastName: m.last,
         role: "USER",
         creditsBalance: m.credits,
+        studioId: "stu_ilannatek",
       },
     });
     membres.push(u);

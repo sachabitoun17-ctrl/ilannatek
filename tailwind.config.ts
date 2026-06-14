@@ -5,58 +5,83 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Modern cool-ink: dark surfaces, primary actions, primary text.
+        // Espresso ink — text, dark surfaces, primary actions (warm near-black, premium).
         brand: {
-          50: "#EEF0F4",
-          100: "#D9DCE3",
-          200: "#B4B9C6",
-          300: "#878D9F",
-          400: "#565C6E",
-          500: "#2C313E",
-          600: "#16181F", // primary ink
-          700: "#0E0F14",
-          800: "#08090C",
+          50: "#F6F4F2",
+          100: "#E9E4DF",
+          200: "#CFC6BD",
+          300: "#A89C8F",
+          400: "#6E6358",
+          500: "#3D352E",
+          600: "#261F1A", // primary ink
+          700: "#19130F",
+          800: "#0E0A07",
           900: "#000000",
         },
-        // Vermillion energy — highlights, badges, the occasional bold CTA.
+        // Coral — the vivid-pastel star. Buttons, highlights, energy.
         accent: {
-          50: "#FFF1ED",
-          100: "#FFDFD6",
-          200: "#FFBCA9",
-          300: "#FF9374", // bright text on dark
-          400: "#FF6A43",
-          500: "#F2481F", // primary accent
-          600: "#CE360F",
-          700: "#A32A0C",
+          50: "#FFF1EE",
+          100: "#FFE1DB",
+          200: "#FFC4B8",
+          300: "#FF9E8C",
+          400: "#F87765",
+          500: "#EC5B4A", // primary coral
+          600: "#D2402F",
+          700: "#AE3122",
         },
-        // Clean, cool-neutral light surfaces (kills the warm "AI cream" tell).
+        // Sage — calm secondary (wellness).
+        sage: {
+          50: "#F0F4EF",
+          100: "#DEE8DB",
+          200: "#BFD3BA",
+          300: "#97B591",
+          400: "#6E9268",
+          500: "#547A4E",
+          600: "#3F5E3A",
+        },
+        // Lavender — tertiary pop.
+        lavender: {
+          50: "#F3F0FB",
+          100: "#E6E0F6",
+          200: "#CDC1EE",
+          300: "#AD9CE0",
+          400: "#8E78D1",
+          500: "#735BBC",
+          600: "#5A459A",
+        },
+        // Soft clean whites (NOT beige — faint cool tint).
         cream: {
-          DEFAULT: "#F5F5F4",
-          50: "#FBFBFA",
-          100: "#F1F1EF",
-          200: "#E5E5E2",
+          DEFAULT: "#F8F7F9",
+          50: "#FDFCFE",
+          100: "#F2F1F4",
+          200: "#E6E5E9",
         },
-        // Neutral grays (de-warmed for a crisper, more modern feel).
+        // Cool-neutral grays.
         stone2: {
-          50: "#F6F6F5",
-          100: "#ECECEA",
-          200: "#DCDCD9",
-          300: "#BFBFBB",
-          400: "#8C8C87",
-          500: "#65655F",
-          600: "#474742",
-          700: "#2B2B27",
-          800: "#1A1A17",
-          900: "#101010",
+          50: "#F7F7F8",
+          100: "#ECECEE",
+          200: "#DCDCDF",
+          300: "#BEBEC3",
+          400: "#8B8B92",
+          500: "#65656C",
+          600: "#47474D",
+          700: "#2C2C30",
+          800: "#1A1A1D",
+          900: "#101012",
         },
       },
       fontFamily: {
+        // Body / UI
         sans: ["Inter", "system-ui", "sans-serif"],
-        serif: ["Cormorant Garamond", "Georgia", "serif"],
+        // Display — Bricolage Grotesque (original, modern, professional).
+        // `font-serif` is kept as the class hook used across the app.
+        serif: ["'Bricolage Grotesque'", "Inter", "system-ui", "sans-serif"],
+        display: ["'Bricolage Grotesque'", "Inter", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        xl: "0.75rem",
-        "2xl": "1rem",
+        xl: "0.875rem",
+        "2xl": "1.125rem",
+        "3xl": "1.75rem",
       },
     },
   },

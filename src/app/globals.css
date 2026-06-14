@@ -2,16 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 :root {
-  --background: #f5f5f4;
+  --background: #f8f7f9;
   --surface: #ffffff;
-  --foreground: #16181f;
-  --muted: #65655f;
-  --line: #e5e5e2;
-  --ink: #16181f;
-  --accent: #f2481f;
+  --foreground: #261f1a;
+  --muted: #65656c;
+  --line: #e6e5e9;
+  --ink: #261f1a;
+  --accent: #ec5b4a;
 }
 
 html,
@@ -25,8 +25,8 @@ body {
 }
 
 .font-serif {
-  font-family: "Cormorant Garamond", Georgia, serif;
-  letter-spacing: -0.01em;
+  font-family: "Bricolage Grotesque", Inter, system-ui, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 /* Tabular figures for stats / counts / prices */

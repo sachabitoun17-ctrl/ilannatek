@@ -595,4 +595,18 @@ INSERT INTO "Studio" ("id", "accountId", "name", "slug", "city", "timezone", "st
   VALUES ('stu_ilannatek', 'acc_ilannatek', 'Ilannatek · Paris', 'ilannatek-paris', 'Paris', 'Europe/Paris', 'ACTIVE')
   ON CONFLICT DO NOTHING;
 
+-- ─── Scoping : rattacher chaque membre à son studio ──────────────────────────
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "studioId" TEXT;
+-- Tous les utilisateurs existants (sauf superadmin) appartiennent au studio Ilannatek.
+UPDATE "User" SET "studioId" = 'stu_ilannatek'
+  WHERE "studioId" IS NULL AND "role" <> 'SUPERADMIN';
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'User_studioId_idx') THEN
+    CREATE INDEX "User_studioId_idx" ON "User"("studioId");
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'User_studioId_fkey') THEN
+    ALTER TABLE "User" ADD CONSTRAINT "User_studioId_fkey" FOREIGN KEY ("studioId") REFERENCES "Studio"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
+
 -- ✓ Terminé. Le schéma correspond maintenant exactement à Prisma.
