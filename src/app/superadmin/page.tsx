@@ -3,8 +3,13 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/utils";
 
-export default async function SuperAdminDashboard() {
+export default async function SuperAdminDashboard({
+  searchParams,
+}: {
+  searchParams: { created?: string };
+}) {
   const now = new Date();
+  const createdSlug = searchParams?.created;
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [
@@ -63,11 +68,30 @@ export default async function SuperAdminDashboard() {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="font-serif text-3xl text-cream-50 font-medium">Vue d&apos;ensemble</h1>
-        <p className="text-stone2-400 text-sm mt-1">
-          Tous les clients, studios et indicateurs de la plateforme.
-        </p>
+      {createdSlug && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 flex items-center justify-between gap-4">
+          <span>
+            Client créé. Studio en ligne sur{" "}
+            <Link href={`/studio/${createdSlug}`} className="underline hover:text-emerald-200">
+              /studio/{createdSlug}
+            </Link>
+          </span>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-3xl text-cream-50 font-medium">Vue d&apos;ensemble</h1>
+          <p className="text-stone2-400 text-sm mt-1">
+            Tous les clients, studios et indicateurs de la plateforme.
+          </p>
+        </div>
+        <Link
+          href="/superadmin/new"
+          className="inline-flex items-center justify-center px-6 py-3 bg-accent-500 text-white text-[11px] uppercase tracking-[0.2em] font-semibold hover:bg-accent-400 active:scale-[0.98] transition-all shrink-0"
+        >
+          + Nouveau client
+        </Link>
       </div>
 
       {/* Platform KPIs */}
@@ -134,9 +158,15 @@ export default async function SuperAdminDashboard() {
 
           {accounts.length === 0 && (
             <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center">
-              <p className="text-stone2-400 text-sm">
-                Aucun compte. Lancez le seed ou exécutez le SQL de rattrapage pour créer le premier studio.
+              <p className="text-stone2-400 text-sm mb-4">
+                Aucun compte client pour l&apos;instant.
               </p>
+              <Link
+                href="/superadmin/new"
+                className="inline-flex items-center justify-center px-6 py-3 bg-accent-500 text-white text-[11px] uppercase tracking-[0.2em] font-semibold hover:bg-accent-400 transition-colors"
+              >
+                Créer le premier client
+              </Link>
             </div>
           )}
         </div>
